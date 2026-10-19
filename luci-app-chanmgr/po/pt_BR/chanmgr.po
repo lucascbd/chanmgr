@@ -392,3 +392,9 @@ msgstr "Identificador curto usado nos grupos, ex.: ap1."
 
 msgid "Use only letters, digits and underscores"
 msgstr "Use apenas letras, números e sublinhado"
+
+msgid "Apply %s plan now"
+msgstr "Aplicar agora o plano de %s"
+
+msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
+msgstr "Trocar agora os rádios de %s para os canais planejados? A outra banda não é alterada. Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."

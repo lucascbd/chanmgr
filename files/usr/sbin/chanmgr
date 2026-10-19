@@ -15,10 +15,12 @@ function usage() {
 		'  sample                  Take one channel-utilization sample\n' +
 		'  evaluate [--apply|--dry-run] [--no-gap]\n' +
 		'                          Scan, plan and (in apply mode) switch\n' +
-		'  apply                   Apply the latest plan now, ignoring hysteresis\n' +
+		'  apply [2g|5g]           Apply the latest plan now, ignoring hysteresis\n' +
 		'  daemon                  Run the scheduler (used by the init script)\n' +
 		'  agent info|survey       Local agent queries\n' +
-		'  agent scan <radio>\n\n' +
+		'  agent scan <radio>\n' +
+		'  agent switch <radio> <channel> [width]\n' +
+		'                          Switch a local radio now (CSA), as apply does\n\n' +
 		'Set CHANMGR_VERBOSE=1 to also print log messages.\n'
 	);
 
@@ -71,7 +73,7 @@ case 'evaluate':
 	break;
 
 case 'apply':
-	out(ctl.apply());
+	out(ctl.apply(args[0]));
 	break;
 
 case 'daemon':
@@ -83,6 +85,12 @@ case 'agent':
 	case 'info': out(agent.info()); break;
 	case 'survey': out(agent.survey()); break;
 	case 'scan': out(agent.scan(args[0])); break;
+	case 'switch':
+		if (!args[0] || !args[1])
+			usage();
+
+		out(agent.switch_channel({ radio: args[0], channel: +args[1], width: +(args[2] ?? 0) }));
+		break;
 	default: usage();
 	}
 	break;

@@ -34,7 +34,11 @@ return function(t) {
 	t.ok(length(st.radios['local/radio1'].costs) == 2, 'status: cost table (36/80, 149/80)');
 	t.ok(st.radios['local/radio0'].util > 0, 'status: sampled utilization');
 
-	// manual apply of the recommendation
+	// apply one band only
+	r = ctl.apply('2g');
+	t.eq([ agent.dev.radios.radio0.channel, agent.dev.radios.radio1.channel ], [ 6, 36 ], 'apply 2g: 5g untouched');
+
+	// manual apply of the rest
 	r = ctl.apply();
 	t.ok(r.ok, 'apply ok');
 	t.eq([ agent.dev.radios.radio0.channel, agent.dev.radios.radio1.channel ], [ 6, 149 ], 'apply: switched both radios');

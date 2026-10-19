@@ -39,7 +39,7 @@ return {
 	chanmgr: {
 		status: { call: wrap(() => ({ ...ctl.status(), log: logread() })) },
 		evaluate: { args: { apply: false }, call: wrap((a) => background(a.apply ? 'evaluate --apply --no-gap' : 'evaluate --dry-run --no-gap')) },
-		apply: { call: wrap(() => background('apply')) },
+		apply: { args: { band: '' }, call: wrap((a) => background(match(a.band ?? '', /^(2g|5g)$/) ? 'apply ' + a.band : 'apply')) },
 		discover: { call: wrap(() => ctl.discover()) },
 
 		agent_info: { call: wrap(() => agent.info()) },

@@ -19,7 +19,8 @@ const callEvaluate = rpc.declare({
 
 const callApply = rpc.declare({
 	object: 'chanmgr',
-	method: 'apply'
+	method: 'apply',
+	params: [ 'band' ]
 });
 
 const ACTIONS = {
@@ -112,7 +113,13 @@ return view.extend({
 					_('Total cost: current %s, best %s (gain %s / %s). Evaluated %s.').format(
 						fmtNum(p.current_cost), fmtNum(p.best_cost), fmtNum(p.gain), fmtPct(p.rel), fmtTime(p.ts))
 				]),
-				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios'))
+				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios')),
+				(p.key && p.action != 'applied')
+					? E('button', {
+						'class': 'btn cbi-button cbi-button-apply',
+						'click': ui.createHandlerFn(this, 'handleApply', band)
+					}, _('Apply %s plan now').format(BANDS[band] ?? band))
+					: ''
 			]));
 		}
 
@@ -207,11 +214,15 @@ return view.extend({
 		});
 	},
 
-	handleApply(ev) {
-		if (!confirm(_('Switch the radios to the planned channels now? Clients will follow the channel switch announcement; some may reconnect.')))
+	handleApply(band, ev) {
+		const question = band
+			? _('Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect.').format(BANDS[band] ?? band)
+			: _('Switch the radios to the planned channels now? Clients will follow the channel switch announcement; some may reconnect.');
+
+		if (!confirm(question))
 			return;
 
-		return callApply().then(() => {
+		return callApply(band || '').then(() => {
 			ui.addNotification(null, E('p', _('Applying the plan, one radio at a time.')), 'info');
 		});
 	},
@@ -230,7 +241,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-page-actions', 'style': 'text-align:left' }, [
 				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleEvaluate') }, _('Evaluate now')),
 				' ',
-				E('button', { 'class': 'btn cbi-button cbi-button-apply', 'click': ui.createHandlerFn(this, 'handleApply') }, _('Apply plan now'))
+				E('button', { 'class': 'btn cbi-button cbi-button-apply', 'click': ui.createHandlerFn(this, 'handleApply', '') }, _('Apply plan now'))
 			]),
 			root
 		]);

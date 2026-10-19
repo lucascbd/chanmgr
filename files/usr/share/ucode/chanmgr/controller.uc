@@ -469,6 +469,83 @@ function record(st, model, band, p, d) {
 	}
 }
 
+function node_call(handles, rid, method, args, timeout) {
+	let nr = split(rid, '/');
+	let h = handles[nr[0]];
+	let r = h ? h.call(method, { radio: nr[1], ...args }, timeout) : { error: 'node not configured' };
+
+	return r.error ? { ok: false, errors: [ r.error ] } : r.data;
+}
+
+function switch_one(cfg, st, handles, rid, from, to) {
+	let res = node_call(handles, rid, 'switch', {
+		channel: to.channel, width: to.width,
+		bcn_count: cfg.bcn_count, reload_fallback: cfg.reload_fallback
+	}, 180);
+
+	add_history(st, { rid, from: from?.channel, to: to.channel, width: to.width, ok: res.ok, msg: join('; ', res.errors ?? []) });
+
+	if (!res.ok)
+		log('err', '%s: switch to channel %d failed: %s', rid, to.channel, join('; ', res.errors ?? []));
+
+	return res.ok;
+}
+
+// Members of a group (e.g. an 802.11s mesh) must end up on the same channel:
+// announce the switch on all of them, confirm each, and if any of them did not
+// make it, move all of them back to the old channel.
+function switch_group(cfg, st, handles, u) {
+	let move = (to) => {
+		let ok = true;
+
+		for (let rid in u.radios) {
+			let res = node_call(handles, rid, 'switch', {
+				channel: to.channel, width: to.width, bcn_count: cfg.bcn_count, nowait: true
+			}, 60);
+
+			if (!res.ok) {
+				log('err', '%s: channel switch announcement failed: %s', rid, join('; ', res.errors ?? []));
+				ok = false;
+			}
+		}
+
+		let results = {};
+
+		for (let rid in u.radios) {
+			results[rid] = node_call(handles, rid, 'confirm', { channel: to.channel, timeout: 20 }, 60).ok;
+			ok = ok && results[rid];
+		}
+
+		return { ok, results };
+	};
+
+	let r = move(u.best);
+
+	for (let rid in u.radios)
+		add_history(st, {
+			rid, from: u.current?.channel, to: u.best.channel, width: u.best.width, ok: r.results[rid],
+			msg: r.results[rid] ? 'group ' + u.id : 'not on the new channel after the switch'
+		});
+
+	if (r.ok)
+		return true;
+
+	log('err', '%s: not all members switched, moving the group back to channel %d', u.id, u.current.channel);
+
+	let back = move(u.current);
+
+	for (let rid in u.radios)
+		add_history(st, {
+			rid, from: u.best.channel, to: u.current.channel, width: u.current.width, ok: back.results[rid],
+			msg: back.results[rid] ? 'rollback, group ' + u.id : 'ROLLBACK FAILED, check this radio'
+		});
+
+	if (!back.ok)
+		log('crit', '%s: rollback failed, group members may be on different channels', u.id);
+
+	return false;
+}
+
 // Apply the stored plan of a band, one unit at a time. Stops on first failure.
 function apply_band(cfg, st, band) {
 	let p = st.plans[band];
@@ -485,48 +562,9 @@ function apply_band(cfg, st, band) {
 		if (changed++ > 0)
 			sleep(cfg.apply_gap * 1000);
 
-		let group = length(u.radios) > 1;
-		let ok = true;
-
-		for (let rid in u.radios) {
-			let nr = split(rid, '/');
-			let h = handles[nr[0]];
-			let r = h ? h.call('switch', {
-				radio: nr[1], channel: u.best.channel, width: u.best.width,
-				bcn_count: cfg.bcn_count, nowait: group, reload_fallback: cfg.reload_fallback
-			}, 180) : { error: 'node not configured' };
-
-			let res = r.error ? { ok: false, errors: [ r.error ] } : r.data;
-
-			if (!group || !res.ok) {
-				add_history(st, {
-					rid, from: u.current?.channel, to: u.best.channel, width: u.best.width,
-					ok: res.ok, msg: join('; ', res.errors ?? [])
-				});
-			}
-
-			if (!res.ok) {
-				log('err', '%s: switch to channel %d failed: %s', rid, u.best.channel, join('; ', res.errors ?? []));
-				ok = false;
-				break;
-			}
-		}
-
-		// mesh groups: all members got the CSA, now confirm each of them
-		if (ok && group) {
-			for (let rid in u.radios) {
-				let nr = split(rid, '/');
-				let r = handles[nr[0]].call('confirm', { radio: nr[1], channel: u.best.channel, timeout: 20 }, 60);
-				let res = r.error ? { ok: false } : r.data;
-
-				add_history(st, {
-					rid, from: u.current?.channel, to: u.best.channel, width: u.best.width,
-					ok: res.ok, msg: res.ok ? 'group ' + u.id : 'not on new channel after CSA'
-				});
-
-				ok = ok && res.ok;
-			}
-		}
+		let ok = (length(u.radios) > 1)
+			? switch_group(cfg, st, handles, u)
+			: switch_one(cfg, st, handles, u.radios[0], u.current, u.best);
 
 		if (!ok) {
 			p.action = 'failed';
@@ -633,14 +671,15 @@ function evaluate(opts) {
 }
 
 // Apply the latest stored plan now, ignoring hysteresis ("Apply now").
-function apply() {
+//   only_band: '2g' or '5g' to leave the other band alone
+function apply(only_band) {
 	if (!lock('apply'))
 		return { error: 'another operation is running' };
 
 	let cfg = config(), st = load_state(), ok = true;
 
 	for (let band, p in st.plans)
-		if (p.key != '' && p.action != 'applied')
+		if ((!only_band || band == only_band) && p.key != '' && p.action != 'applied')
 			ok = apply_band(cfg, st, band) && ok;
 
 	discover(cfg, st);
@@ -696,4 +735,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group };

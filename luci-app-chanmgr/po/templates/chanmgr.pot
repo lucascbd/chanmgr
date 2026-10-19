@@ -522,3 +522,11 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/config.js
 msgid "Use only letters, digits and underscores"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/status.js
+msgid "Apply %s plan now"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/status.js
+msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
+msgstr ""
