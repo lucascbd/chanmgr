@@ -218,10 +218,13 @@ function discover(cfg, st) {
 		res[node.name] = r;
 		st.nodes[node.name] = r.error
 			? { ok: false, error: r.error, ts: time() }
-			: { ok: true, ts: time(), hostname: r.data.hostname, agent: r.data.agent ?? 1, radios: r.data.radios };
+			: { ok: true, ts: time(), hostname: r.data.hostname, agent: r.data.agent ?? 1, radios: r.data.radios, down: r.data.down ?? {} };
 
 		if (r.error)
 			log('warn', 'node %s: %s', node.name, r.error);
+
+		for (let radio, why in r.data?.down ?? {})
+			log('warn', '%s/%s: %s', node.name, radio, why);
 	}
 
 	// forget nodes removed from the config

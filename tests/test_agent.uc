@@ -72,4 +72,9 @@ return function(t) {
 	t.eq(uci.data.wireless.radio1.channel, '36', 'agent reload while down: persisted');
 
 	t.eq(agent.switch_channel({ radio: 'radio9', channel: 36 }).ok, false, 'agent: unknown radio refused');
+
+	// a radio that is down is reported, not silently dropped
+	reset('down');
+	let inf = agent.info();
+	t.eq([ inf.radios.radio1, inf.down.radio1 ], [ null, 'radio is down' ], 'agent: down radio reported');
 };

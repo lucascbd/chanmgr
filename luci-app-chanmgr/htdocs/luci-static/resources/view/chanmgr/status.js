@@ -77,9 +77,11 @@ return view.extend({
 		for (const name in st.nodes ?? {}) {
 			const n = st.nodes[name];
 
+			const down = Object.keys(n.down ?? {}).map((r) => E('div', { 'style': 'color:red' }, '%s: %s'.format(r, n.down[r])));
+
 			rows.push([
 				_('Node %s').format(name),
-				n.ok ? '%s – %s'.format(n.hostname || '?', Object.keys(n.radios ?? {}).join(', ') || _('no radios'))
+				n.ok ? E([], [ '%s – %s'.format(n.hostname || '?', Object.keys(n.radios ?? {}).join(', ') || _('no radios')), ...down ])
 					: E('span', { 'style': 'color:red' }, n.error)
 			]);
 		}

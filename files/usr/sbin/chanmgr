@@ -58,6 +58,9 @@ case 'discover':
 				name, radio, d.band, d.channel, d.width, d.htmode,
 				join(', ', map(d.ifaces, (i) => i.ifname + ':' + i.mode)),
 				d.has_mesh ? '  mesh: put it in a group or it stays locked' : ''));
+
+		for (let radio, why in r.data.down ?? {})
+			print(sprintf('  %s/%s  DOWN: %s\n', name, radio, why));
 	}
 
 	break;

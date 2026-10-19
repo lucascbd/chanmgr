@@ -48,11 +48,16 @@ function iw(args) {
 function info() {
 	let st = bus().call('network.wireless', 'status', {}) ?? {};
 	let cur = uci.cursor();
-	let radios = {};
+	let radios = {}, down = {};
 
 	for (let name, r in st) {
-		if (!r.up || r.disabled)
+		if (r.disabled)
 			continue;
+
+		if (!r.up) {
+			down[name] = 'radio is down';
+			continue;
+		}
 
 		let ifaces = [];
 
@@ -67,8 +72,10 @@ function info() {
 
 		let main = filter(ifaces, (i) => i.mode == 'ap')[0] ?? filter(ifaces, (i) => i.mode == 'mesh')[0];
 
-		if (!main || main.info.freq == null)
+		if (!main || main.info.freq == null) {
+			down[name] = main ? main.ifname + ' has no channel (not started, or waiting for DFS)' : 'no AP or mesh interface';
 			continue;
+		}
 
 		let d = main.info;
 		let band = r.config?.band ?? cur.get('wireless', name, 'band') ?? chan.freq2band(d.freq);
@@ -92,7 +99,7 @@ function info() {
 	}
 
 	// agent: feature level, lets the controller refuse what an old agent cannot do
-	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 2, radios };
+	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 2, radios, down };
 }
 
 // Survey counters of every radio (passive, no off-channel time).
