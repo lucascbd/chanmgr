@@ -10,8 +10,9 @@ function nameOption(s, title, description) {
 	const o = s.option(form.Value, 'name', title, description);
 
 	o.rmempty = false;
-	o.cfgvalue = function(section_id) {
-		return this.super('cfgvalue', [ section_id ]) ?? (/^(cfg|new)[0-9a-f]{6}$/.test(section_id) ? null : section_id);
+	// cfgvalue() is also the setter LuCI uses while loading: pass every argument on
+	o.cfgvalue = function(section_id, set_value) {
+		return this.super('cfgvalue', arguments) ?? (/^(cfg|new)[0-9a-f]{6}$/.test(section_id) ? null : section_id);
 	};
 	o.validate = (section_id, value) => NAME_RE.test(value ?? '') ? true : _('Use only letters, digits and underscores');
 

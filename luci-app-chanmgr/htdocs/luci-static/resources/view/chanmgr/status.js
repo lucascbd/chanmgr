@@ -146,7 +146,7 @@ return view.extend({
 				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
 				E('h4', _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Cost'), _('Neighbors'), _('Utilization'), _('Own APs') ], costs, _('No data')),
-				E('details', [
+				E('details', { 'data-key': rid }, [
 					E('summary', _('Neighbor networks (%d)').format(neigh.length)),
 					table([ _('SSID'), _('BSSID'), _('Channel'), _('Width'), _('Signal') ], neigh, _('No neighbors seen'))
 				])
@@ -177,6 +177,18 @@ return view.extend({
 	},
 
 	update(root, st) {
+		// polling: only redraw when something changed, and keep the scroll
+		// position and the expanded neighbor lists
+		const json = JSON.stringify(st);
+
+		if (json == this.lastState)
+			return;
+
+		this.lastState = json;
+
+		const scroll = window.scrollY;
+		const open = new Set(Array.from(root.querySelectorAll('details[open]'), (d) => d.dataset.key));
+
 		dom.content(root, [
 			this.renderSummary(st),
 			...this.renderPlans(st),
@@ -184,6 +196,9 @@ return view.extend({
 			this.renderHistory(st),
 			this.renderLog(st)
 		]);
+
+		root.querySelectorAll('details').forEach((d) => d.open = open.has(d.dataset.key));
+		window.scrollTo(window.scrollX, scroll);
 	},
 
 	handleEvaluate(ev) {
