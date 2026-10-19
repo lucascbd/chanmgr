@@ -37,6 +37,20 @@ return function(t) {
 	t.eq([ cfg.nodes[0].lock, cfg.nodes[1].exclude ], [ [ 'radio2' ], [ 'radio2' ] ], 'config: lists');
 	t.eq(cfg.groups, [ { name: 'mesh', members: [ 'ap1/radio1', 'ap2/radio1' ] } ], 'config: groups');
 
+	// sections added in LuCI are anonymous and carry "name"; duplicates are skipped
+	uci.data.chanmgr.cfg0a1b2c = { '.type': 'node', name: 'ap3', host: '10.0.0.4' };
+	uci.data.chanmgr.cfg0a1b2d = { '.type': 'node', name: 'ap1', host: '10.0.0.9' };
+	uci.data.chanmgr.cfg0a1b2e = { '.type': 'group', name: 'g24', member: [ 'ap1/radio0', 'ap3/radio0' ] };
+
+	let cfg2 = ctl.config();
+
+	t.eq(map(cfg2.nodes, (n) => [ n.name, n.host ]), [ [ 'ap1', '10.0.0.2' ], [ 'ap2', '10.0.0.3' ], [ 'ap3', '10.0.0.4' ] ], 'config: anonymous nodes by name, duplicate skipped');
+	t.eq(map(cfg2.groups, (g) => g.name), [ 'mesh', 'g24' ], 'config: anonymous group by name');
+
+	delete uci.data.chanmgr.cfg0a1b2c;
+	delete uci.data.chanmgr.cfg0a1b2d;
+	delete uci.data.chanmgr.cfg0a1b2e;
+
 	let phy5 = parse.phy_channels(t.fixture('phy_5g.txt'));
 	let st = {
 		nodes: {

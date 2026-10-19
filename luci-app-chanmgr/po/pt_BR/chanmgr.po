@@ -377,3 +377,18 @@ msgstr "este dispositivo"
 
 msgid "utilization %s"
 msgstr "utilização %s"
+
+msgid "Add group"
+msgstr "Adicionar grupo"
+
+msgid "Add node"
+msgstr "Adicionar nó"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "Short identifier used in groups, e.g. ap1."
+msgstr "Identificador curto usado nos grupos, ex.: ap1."
+
+msgid "Use only letters, digits and underscores"
+msgstr "Use apenas letras, números e sublinhado"

@@ -60,12 +60,17 @@ function config() {
 		groups: []
 	};
 
+	// sections created in LuCI are anonymous and carry an explicit name
+	let name_of = (s) => (s.name != null && s.name != '') ? s.name : s['.name'];
+
 	c.foreach('chanmgr', 'node', (s) => {
-		if (s.enabled == '0')
+		let name = name_of(s);
+
+		if (s.enabled == '0' || length(filter(cfg.nodes, (n) => n.name == name)))
 			return;
 
 		push(cfg.nodes, {
-			name: s['.name'],
+			name,
 			type: s.host ? 'remote' : 'local',
 			host: s.host,
 			port: s.port,
@@ -80,7 +85,7 @@ function config() {
 	});
 
 	c.foreach('chanmgr', 'group', (s) => {
-		push(cfg.groups, { name: s['.name'], members: list(s.member) });
+		push(cfg.groups, { name: name_of(s), members: list(s.member) });
 	});
 
 	return cfg;

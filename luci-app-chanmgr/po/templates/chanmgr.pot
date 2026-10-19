@@ -502,3 +502,23 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/status.js:146
 msgid "utilization %s"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Add group"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Add node"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Name"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Short identifier used in groups, e.g. ap1."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Use only letters, digits and underscores"
+msgstr ""

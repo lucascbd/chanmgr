@@ -2,6 +2,22 @@
 'require view';
 'require form';
 
+const NAME_RE = /^[A-Za-z0-9_]+$/;
+
+// Sections added in LuCI are anonymous and store their name in "name";
+// hand-written named sections (e.g. 'local') fall back to the section id.
+function nameOption(s, title, description) {
+	const o = s.option(form.Value, 'name', title, description);
+
+	o.rmempty = false;
+	o.cfgvalue = function(section_id) {
+		return this.super('cfgvalue', [ section_id ]) ?? (/^(cfg|new)[0-9a-f]{6}$/.test(section_id) ? null : section_id);
+	};
+	o.validate = (section_id, value) => NAME_RE.test(value ?? '') ? true : _('Use only letters, digits and underscores');
+
+	return o;
+}
+
 function validateTimes(section_id, value) {
 	if (value == null || value == '')
 		return true;
@@ -106,9 +122,13 @@ return view.extend({
 		s = m.section(form.GridSection, 'node', _('Nodes'),
 			_('Devices whose radios are managed. A node without host is this device. Remote nodes need the chanmgr package and an rpcd login with the "chanmgr-agent" ACL.'));
 		s.addremove = true;
-		s.anonymous = false;
+		s.anonymous = true;
 		s.nodescriptions = true;
-		s.modaltitle = (section_id) => _('Node') + ' » ' + section_id;
+		s.addbtntitle = _('Add node');
+		s.modaltitle = (section_id) => _('Node') + ' » ' + (m.data.get('chanmgr', section_id, 'name') ?? section_id);
+
+		o = nameOption(s, _('Name'), _('Short identifier used in groups, e.g. ap1.'));
+		o.placeholder = 'ap1';
 
 		o = s.option(form.Flag, 'enabled', _('Enabled'));
 		o.default = o.enabled;
@@ -154,7 +174,11 @@ return view.extend({
 		s = m.section(form.TableSection, 'group', _('Channel groups'),
 			_('Radios that must always share a channel, such as the members of an 802.11s mesh. They are moved together. A radio with a mesh interface that is not in a group is never moved.'));
 		s.addremove = true;
-		s.anonymous = false;
+		s.anonymous = true;
+		s.addbtntitle = _('Add group');
+
+		o = nameOption(s, _('Name'));
+		o.placeholder = 'mesh5g';
 
 		o = s.option(form.DynamicList, 'member', _('Members'), _('node/radio, e.g. ap1/radio1'));
 		o.validate = (section_id, value) => (!value || /^[A-Za-z0-9_]+\/[A-Za-z0-9_]+$/.test(value)) ? true : _('Expecting node/radio');
