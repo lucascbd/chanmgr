@@ -92,6 +92,11 @@ uci commit rpcd
 ```
 
 The access point also needs `uhttpd` with `uhttpd-mod-ubus`, which comes with LuCI.
+The controller talks to the same address as the access point's LuCI (`http://<host>/ubus`,
+port 80). Leave `port` empty unless uhttpd listens elsewhere, and set `https` (plus
+`insecure` for the default self-signed certificate) if the access point only serves HTTPS.
+`root` and its password also work for a quick test, but the password is then
+stored in plain text on the controller with full access to the access point.
 
 On the controller (`/etc/config/chanmgr`, or **Network → Channel Manager →
 Configuration**):

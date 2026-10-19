@@ -1,0 +1,16 @@
+#!/bin/sh
+# Test stand-in for uclient-fetch: answers ubus JSON-RPC from canned replies.
+# The URL path selects the scenario: /ok, /html, /noobj.
+for a; do case "$a" in --post-file=*) f=${a#--post-file=};; esac; url=$a; done
+body=$(cat "$f")
+case "$url" in
+*/html/*) echo '<html><body>LuCI login</body></html>'; exit 0;;
+esac
+case "$body" in
+*'"login"'*'"password": "ok"'*) echo '{"jsonrpc":"2.0","id":1,"result":[0,{"ubus_rpc_session":"S1"}]}';;
+*'"login"'*) echo '{"jsonrpc":"2.0","id":1,"result":[6]}';;
+*) case "$url" in
+	*/noobj/*) echo '{"jsonrpc":"2.0","id":2,"result":[4]}';;
+	*) echo '{"jsonrpc":"2.0","id":2,"result":[0,{"hostname":"ap"}]}';;
+   esac;;
+esac

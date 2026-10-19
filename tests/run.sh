@@ -5,6 +5,7 @@
 dir=$(cd "$(dirname "$0")" && pwd)
 set -- -L "$dir/stubs" -L "$dir/../files/usr/share/ucode"
 [ -n "$UCODE_LIB" ] && set -- "$@" -L "$UCODE_LIB"
+PATH="$dir/bin:$PATH"
 CHANMGR_RUN_DIR=$(mktemp -d)
 export CHANMGR_RUN_DIR
 "${UCODE:-ucode}" "$@" "$dir/run.uc"
