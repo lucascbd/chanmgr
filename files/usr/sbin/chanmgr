@@ -19,8 +19,9 @@ function usage() {
 		'  daemon                  Run the scheduler (used by the init script)\n' +
 		'  agent info|survey       Local agent queries\n' +
 		'  agent scan <radio>\n' +
-		'  agent switch <radio> <channel> [width]\n' +
-		'                          Switch a local radio now (CSA), as apply does\n\n' +
+		'  agent switch <radio> <channel> [width] [--csa]\n' +
+		'                          Switch a local radio now, as apply does (radios\n' +
+		'                          with mesh are restarted unless --csa is given)\n\n' +
 		'Set CHANMGR_VERBOSE=1 to also print log messages.\n'
 	);
 
@@ -89,7 +90,13 @@ case 'agent':
 		if (!args[0] || !args[1])
 			usage();
 
-		out(agent.switch_channel({ radio: args[0], channel: +args[1], width: +(args[2] ?? 0) }));
+		// same rule as the controller: radios with a mesh interface are restarted
+		let mesh = agent.info().radios[args[0]]?.has_mesh;
+
+		out(agent.switch_channel({
+			radio: args[0], channel: +args[1], width: +(match(args[2] ?? '', /^[0-9]+$/) ? args[2] : 0),
+			method: (mesh && !has('--csa')) ? 'reload' : 'csa'
+		}));
 		break;
 	default: usage();
 	}
