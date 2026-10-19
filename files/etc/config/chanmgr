@@ -19,6 +19,8 @@ config chanmgr 'main'
 	option ref_rssi '-70'
 	option bcn_count '10'
 	option reload_fallback '0'
+	# radios with a mesh interface: reload (restart the radio) or csa
+	option mesh_method 'reload'
 	list channels_2g '1'
 	list channels_2g '6'
 	list channels_2g '11'

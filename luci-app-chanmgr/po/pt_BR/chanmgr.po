@@ -398,3 +398,15 @@ msgstr "Aplicar agora o plano de %s"
 
 msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
 msgstr "Trocar agora os rádios de %s para os canais planejados? A outra banda não é alterada. Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."
+
+msgid "Switching radios with mesh"
+msgstr "Troca em rádios com mesh"
+
+msgid "Radios that also carry an 802.11s mesh interface. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
+msgstr "Rádios que também têm uma interface mesh 802.11s. Nem todo driver suporta anúncio de troca de canal nesses rádios, e ele pode deixar o rádio desligado."
+
+msgid "Restart the radio (clients reconnect)"
+msgstr "Reiniciar o rádio (clientes reconectam)"
+
+msgid "Channel switch announcement (experimental)"
+msgstr "Anúncio de troca de canal (experimental)"

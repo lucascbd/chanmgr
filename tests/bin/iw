@@ -1,0 +1,16 @@
+#!/bin/sh
+# Test stand-in for iw: one 5 GHz radio (phy#1) with phy1-ap0 and phy1-mesh0.
+# The current frequency lives in $CHANMGR_RUN_DIR/freq (default 5180).
+f="$CHANMGR_RUN_DIR/freq"; [ -f "$f" ] || echo 5180 > "$f"
+freq=$(cat "$f")
+case "$*" in
+"dev phy1-ap0 info"|"dev phy1-mesh0 info")
+	[ "$freq" = down ] && exit 1
+	ch=$(( (freq - 5000) / 5 ))
+	printf 'Interface %s\n\taddr 02:00:00:00:00:01\n\twiphy 1\n\tchannel %d (%d MHz), width: 20 MHz, center1: %d MHz\n' "$2" "$ch" "$freq" "$freq";;
+"phy#1 info")
+	printf '\t\t\t* 5180.0 MHz [36] (23.0 dBm)\n\t\t\t* 5745.0 MHz [149] (30.0 dBm)\n';;
+"dev phy1-mesh0 switch"*)
+	echo "$*" >> "$CHANMGR_RUN_DIR/iw.log";;
+*) exit 1;;
+esac

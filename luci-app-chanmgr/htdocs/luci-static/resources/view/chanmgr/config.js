@@ -117,6 +117,12 @@ return view.extend({
 		o.datatype = 'range(1,255)';
 		o.placeholder = '10';
 
+		o = s.taboption('advanced', form.ListValue, 'mesh_method', _('Switching radios with mesh'),
+			_('Radios that also carry an 802.11s mesh interface. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down.'));
+		o.value('reload', _('Restart the radio (clients reconnect)'));
+		o.value('csa', _('Channel switch announcement (experimental)'));
+		o.default = 'reload';
+
 		o = s.taboption('advanced', form.Flag, 'reload_fallback', _('Reload Wi-Fi if CSA fails'),
 			_('Falls back to "wifi reload", which disconnects all clients of the node.'));
 

@@ -46,7 +46,7 @@ return {
 		agent_survey: { call: wrap(() => agent.survey()) },
 		agent_scan: { args: { radio: '' }, call: wrap((a) => agent.scan(a.radio)) },
 		agent_switch: {
-			args: { radio: '', channel: 0, width: 0, bcn_count: 0, nowait: false, reload_fallback: false },
+			args: { radio: '', channel: 0, width: 0, bcn_count: 0, nowait: false, reload_fallback: false, method: '' },
 			call: wrap((a) => agent.switch_channel(a))
 		},
 		agent_confirm: { args: { radio: '', channel: 0, timeout: 0 }, call: wrap((a) => agent.confirm(a)) }

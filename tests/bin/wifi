@@ -1,0 +1,8 @@
+#!/bin/sh
+# Test stand-in for wifi: "reload"/"up" bring the radio up on $CHANMGR_RUN_DIR/next.
+echo "wifi $*" >> "$CHANMGR_RUN_DIR/iw.log"
+case "$1" in
+reload|up) [ -f "$CHANMGR_RUN_DIR/next" ] && cp "$CHANMGR_RUN_DIR/next" "$CHANMGR_RUN_DIR/freq";;
+down) echo down > "$CHANMGR_RUN_DIR/freq";;
+esac
+exit 0

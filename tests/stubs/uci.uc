@@ -4,7 +4,7 @@ let data = {};
 function cursor() {
 	return {
 		get_all: (c, s) => data[c]?.[s],
-		get: (c, s, o) => data[c]?.[s]?.[o],
+		get: (c, s, o) => (o == null) ? data[c]?.[s]?.['.type'] : data[c]?.[s]?.[o],
 		set: (c, s, o, v) => { data[c][s][o] = v; },
 		commit: () => true,
 		foreach: (c, t, cb) => {

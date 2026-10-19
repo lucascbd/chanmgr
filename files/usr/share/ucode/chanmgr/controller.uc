@@ -54,6 +54,9 @@ function config() {
 		ref_rssi: n(m.ref_rssi, -70),
 		bcn_count: n(m.bcn_count, 10),
 		reload_fallback: m.reload_fallback == '1',
+		// radios with a mesh interface: "reload" restarts them on the new
+		// channel; "csa" (experimental) announces the switch like for APs
+		mesh_method: (m.mesh_method == 'csa') ? 'csa' : 'reload',
 		channels_2g: map(list(m.channels_2g ?? '1 6 11'), (x) => +x),
 		max_combos: n(m.max_combos, 50000),
 		nodes: [],
@@ -215,7 +218,7 @@ function discover(cfg, st) {
 		res[node.name] = r;
 		st.nodes[node.name] = r.error
 			? { ok: false, error: r.error, ts: time() }
-			: { ok: true, ts: time(), hostname: r.data.hostname, radios: r.data.radios };
+			: { ok: true, ts: time(), hostname: r.data.hostname, agent: r.data.agent ?? 1, radios: r.data.radios };
 
 		if (r.error)
 			log('warn', 'node %s: %s', node.name, r.error);
@@ -477,9 +480,24 @@ function node_call(handles, rid, method, args, timeout) {
 	return r.error ? { ok: false, errors: [ r.error ] } : r.data;
 }
 
+// How to switch a radio, or an error when its agent is too old for that.
+function switch_method(cfg, st, rid) {
+	let nr = split(rid, '/');
+	let n = st.nodes?.[nr[0]];
+
+	if (!n?.radios?.[nr[1]]?.has_mesh || cfg.mesh_method == 'csa')
+		return { method: 'csa' };
+
+	if ((n.agent ?? 1) < 2)
+		return { error: 'update chanmgr on ' + nr[0] + ': its agent cannot restart mesh radios safely' };
+
+	return { method: 'reload' };
+}
+
 function switch_one(cfg, st, handles, rid, from, to) {
-	let res = node_call(handles, rid, 'switch', {
-		channel: to.channel, width: to.width,
+	let m = switch_method(cfg, st, rid);
+	let res = m.error ? { ok: false, errors: [ m.error ] } : node_call(handles, rid, 'switch', {
+		channel: to.channel, width: to.width, method: m.method,
 		bcn_count: cfg.bcn_count, reload_fallback: cfg.reload_fallback
 	}, 180);
 
@@ -495,12 +513,24 @@ function switch_one(cfg, st, handles, rid, from, to) {
 // announce the switch on all of them, confirm each, and if any of them did not
 // make it, move all of them back to the old channel.
 function switch_group(cfg, st, handles, u) {
-	let move = (to) => {
+	let methods = map(u.radios, (rid) => switch_method(cfg, st, rid));
+	let err = filter(methods, (m) => m.error)[0]?.error;
+
+	if (err) {
+		log('err', '%s: %s', u.id, err);
+		add_history(st, { rid: u.id, from: u.current?.channel, to: u.best.channel, width: u.best.width, ok: false, msg: err });
+
+		return false;
+	}
+
+	let reload = length(filter(methods, (m) => m.method == 'reload')) > 0;
+
+	let move = (to, method) => {
 		let ok = true;
 
 		for (let rid in u.radios) {
 			let res = node_call(handles, rid, 'switch', {
-				channel: to.channel, width: to.width, bcn_count: cfg.bcn_count, nowait: true
+				channel: to.channel, width: to.width, bcn_count: cfg.bcn_count, nowait: true, method
 			}, 60);
 
 			if (!res.ok) {
@@ -512,14 +542,14 @@ function switch_group(cfg, st, handles, u) {
 		let results = {};
 
 		for (let rid in u.radios) {
-			results[rid] = node_call(handles, rid, 'confirm', { channel: to.channel, timeout: 20 }, 60).ok;
+			results[rid] = node_call(handles, rid, 'confirm', { channel: to.channel, timeout: 45 }, 90).ok;
 			ok = ok && results[rid];
 		}
 
 		return { ok, results };
 	};
 
-	let r = move(u.best);
+	let r = move(u.best, reload ? 'reload' : 'csa');
 
 	for (let rid in u.radios)
 		add_history(st, {
@@ -532,7 +562,8 @@ function switch_group(cfg, st, handles, u) {
 
 	log('err', '%s: not all members switched, moving the group back to channel %d', u.id, u.current.channel);
 
-	let back = move(u.current);
+	// restarting is the most reliable way back, whatever went wrong
+	let back = move(u.current, 'reload');
 
 	for (let rid in u.radios)
 		add_history(st, {

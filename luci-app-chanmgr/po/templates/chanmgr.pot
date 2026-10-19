@@ -530,3 +530,19 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/status.js
 msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Switching radios with mesh"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Radios that also carry an 802.11s mesh interface. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Restart the radio (clients reconnect)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Channel switch announcement (experimental)"
+msgstr ""

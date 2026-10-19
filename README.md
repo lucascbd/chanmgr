@@ -166,6 +166,7 @@ chanmgr agent info | survey | scan <radio>
 | `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |
 | `bcn_count` | `10` | CSA beacon count |
 | `reload_fallback` | `0` | `wifi reload` if CSA fails (disconnects clients) |
+| `mesh_method` | `reload` | radios with a mesh interface: `reload` (restart on the new channel) or `csa` (experimental) |
 
 Each `config node` takes `host`, `port`, `https`, `insecure`, `username`,
 `password`, `timeout`, `list lock`, `list exclude`. Without `host`, the node is
@@ -181,8 +182,11 @@ the local device. Each `config group` takes `list member 'node/radio'`.
 * 2.4 GHz radios are planned and switched as 20 MHz channels.
 * The channel width stays at the configured `htmode`. A fallback to a narrower width
   when 80 MHz blocks are all busy is planned.
-* Switching radios that host both AP and mesh interfaces depends on driver support
-  for multi-interface CSA. Validate it manually first.
+* A channel switch announcement on a radio that hosts both AP and mesh
+  interfaces can leave the radio down (seen on mt76). Such radios are therefore
+  switched by restarting them on the new channel (`mesh_method 'reload'`), which
+  disconnects their clients for a few seconds. When a CSA fails on any radio,
+  the agent restarts it on its previous channel.
 
 ## Tests
 

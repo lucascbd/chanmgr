@@ -91,7 +91,8 @@ function info() {
 		};
 	}
 
-	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), radios };
+	// agent: feature level, lets the controller refuse what an old agent cannot do
+	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 2, radios };
 }
 
 // Survey counters of every radio (passive, no off-channel time).
@@ -134,21 +135,25 @@ function current_freq(ifname) {
 	return parse.dev_info(iw('dev ' + shq(ifname) + ' info')).freq;
 }
 
-// Wait until the radio runs on freq. Returns true on success.
+// Wait until the radio runs on freq. Returns true on success. The radio may
+// be down for a while (restart), so look it up again on every attempt.
 function verify(radio, freq, timeout) {
-	let r = info().radios[radio];
-
-	if (!r)
-		return false;
-
 	for (let t = 0; t < (timeout ?? 15); t++) {
-		if (current_freq(r.ifname) == freq)
+		let r = info().radios[radio];
+
+		if (r && current_freq(r.ifname) == freq)
 			return true;
 
 		sleep(1000);
 	}
 
 	return false;
+}
+
+// Restart one radio with its configured settings (also brings back an
+// interface that hostapd disabled after a failed channel switch).
+function restart(radio) {
+	system(sprintf('wifi down %s >/dev/null 2>&1; wifi up %s >/dev/null 2>&1', shq(radio), shq(radio)));
 }
 
 function persist(radio, channel) {
@@ -162,17 +167,39 @@ function persist(radio, channel) {
 	cur.commit('wireless');
 }
 
-// Switch a radio via CSA.
-//   args: { radio, channel, width, bcn_count, nowait, reload_fallback }
+// Switch a radio.
+//   args: { radio, channel, width, bcn_count, nowait, reload_fallback, method }
+//   method "csa" (default): channel switch announcement, clients stay connected;
+//     on failure the radio is restarted on its configured (old) channel, or on
+//     the new one with reload_fallback.
+//   method "reload": write the channel to UCI and restart the radio. Clients
+//     reconnect, but it works for radios that also carry a mesh interface,
+//     where a CSA can leave the radio down.
 function switch_channel(args) {
+	let cur = uci.cursor();
+
+	if (cur.get('wireless', args.radio) != 'wifi-device')
+		return { ok: false, error: 'unknown radio: ' + args.radio };
+
 	let r = info().radios[args.radio];
-
-	if (!r)
-		return { ok: false, error: 'unknown or inactive radio: ' + args.radio };
-
-	let s = chan.spec(r.band, +args.channel, +(args.width || r.width));
+	let band = r?.band ?? cur.get('wireless', args.radio, 'band');
+	let width = +(args.width || r?.width || chan.htmode_width(cur.get('wireless', args.radio, 'htmode')));
+	let s = chan.spec(band, +args.channel, width);
 	let bcn = +(args.bcn_count || 10);
 	let errors = [];
+
+	if (args.method == 'reload' || !r) {
+		persist(args.radio, s.channel);
+		system('wifi reload >/dev/null 2>&1');
+
+		if (args.nowait)
+			return { ok: true, errors, freq: s.freq };
+
+		let ok = verify(args.radio, s.freq, 45);
+
+		return { ok, errors: ok ? [] : [ 'radio not on the new channel after restart' ], freq: s.freq };
+	}
+
 	let ap = filter(r.ifaces, (i) => i.mode == 'ap')[0];
 
 	if (ap) {
@@ -197,29 +224,36 @@ function switch_channel(args) {
 
 	let ok = verify(args.radio, s.freq, int(bcn * 0.1024) + 10);
 
-	if (!ok && args.reload_fallback) {
+	if (ok) {
 		persist(args.radio, s.channel);
-		system('wifi reload >/dev/null 2>&1');
-		ok = verify(args.radio, s.freq, 120);
-		push(errors, 'used wifi reload fallback');
 
 		return { ok, errors, freq: s.freq };
 	}
 
-	if (ok)
+	if (args.reload_fallback) {
 		persist(args.radio, s.channel);
+		system('wifi reload >/dev/null 2>&1');
+		ok = verify(args.radio, s.freq, 90);
+		push(errors, 'CSA failed, used wifi reload fallback');
 
-	return { ok, errors, freq: s.freq };
+		return { ok, errors, freq: s.freq };
+	}
+
+	// never leave the radio broken: back to its configured channel
+	push(errors, 'CSA failed, radio restarted on its previous channel');
+	restart(args.radio);
+
+	return { ok: false, errors, freq: s.freq };
 }
 
 // Confirm a switch issued with nowait and persist it.
 function confirm(args) {
-	let r = info().radios[args.radio];
+	let band = info().radios[args.radio]?.band ?? uci.cursor().get('wireless', args.radio, 'band');
 
-	if (!r)
-		return { ok: false, error: 'unknown or inactive radio: ' + args.radio };
+	if (!band)
+		return { ok: false, error: 'unknown radio: ' + args.radio };
 
-	let freq = chan.chan2freq(r.band, +args.channel);
+	let freq = chan.chan2freq(band, +args.channel);
 	let ok = verify(args.radio, freq, +(args.timeout || 15));
 
 	if (ok)
