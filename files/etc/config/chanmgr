@@ -1,0 +1,39 @@
+config chanmgr 'main'
+	# start the scheduler (sampling + nightly evaluations)
+	option enabled '0'
+	# recommend: only log and show the plan; apply: switch channels
+	option mode 'recommend'
+	option eval_times '02:30 04:30'
+	option sample_interval '300'
+	option scan_gap '120'
+	option apply_gap '30'
+	# apply only if cost drops by >= min_gain_rel % and >= min_gain_abs
+	option min_gain_rel '25'
+	option min_gain_abs '0.5'
+	# same plan in N consecutive evaluations
+	option confirm '2'
+	option min_switch_interval '86400'
+	option allow_dfs '0'
+	option util_weight '2'
+	option own_weight '2'
+	option ref_rssi '-70'
+	option bcn_count '10'
+	option reload_fallback '0'
+	list channels_2g '1'
+	list channels_2g '6'
+	list channels_2g '11'
+
+config node 'local'
+	option enabled '1'
+
+#config node 'ap1'
+#	option enabled '1'
+#	option host '192.168.1.2'
+#	option username 'chanmgr'
+#	option password 'secret'
+#	list lock 'radio0'
+#	list exclude 'radio2'
+
+#config group 'mesh5g'
+#	list member 'ap1/radio1'
+#	list member 'ap2/radio1'

@@ -1,0 +1,10 @@
+Interface phy1-ap0
+	ifindex 13
+	wdev 0x100000002
+	addr 0a:bb:cc:00:00:10
+	ssid MinhaRede
+	type AP
+	wiphy 1
+	channel 149 (5745 MHz), width: 80 MHz, center1: 5775 MHz
+	txpower 23.00 dBm
+	multicast TXQ:

@@ -1,0 +1,56 @@
+BSS 11:22:33:44:55:01(on phy1-ap0)
+	last seen: 1234.567s [boottime]
+	TSF: 123456789 usec (0d, 00:02:03)
+	freq: 5180.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy SpectrumMgmt (0x1111)
+	signal: -52.00 dBm
+	last seen: 120 ms ago
+	SSID: Vizinho101
+	Supported rates: 6.0* 9.0 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	HT capabilities:
+		Capabilities: 0x9ef
+			RX LDPC
+	HT operation:
+		 * primary channel: 36
+		 * secondary channel offset: above
+		 * STA channel width: any
+	VHT capabilities:
+		VHT Capabilities (0x339b79b2):
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 42
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	RSN:	 * Version: 1
+BSS 11:22:33:44:55:02(on phy1-ap0)
+	freq: 5745
+	signal: -81.00 dBm
+	SSID: Vizinho202
+	HT operation:
+		 * primary channel: 149
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+BSS 11:22:33:44:55:03(on phy1-ap0)
+	freq: 5200
+	signal: -70.00 dBm
+	SSID: 
+	HT operation:
+		 * primary channel: 40
+		 * secondary channel offset: below
+		 * STA channel width: any
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+BSS 0a:bb:cc:00:00:20(on phy1-ap0)
+	freq: 5745
+	signal: -60.00 dBm
+	SSID: MinhaRede
+	HT operation:
+		 * primary channel: 149
+		 * secondary channel offset: above
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 155
+		 * center freq segment 2: 0

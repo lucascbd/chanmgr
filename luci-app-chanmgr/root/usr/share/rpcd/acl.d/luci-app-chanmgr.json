@@ -1,0 +1,17 @@
+{
+	"luci-app-chanmgr": {
+		"description": "Grant access to the Wi-Fi channel manager",
+		"read": {
+			"ubus": {
+				"chanmgr": [ "status" ]
+			},
+			"uci": [ "chanmgr" ]
+		},
+		"write": {
+			"ubus": {
+				"chanmgr": [ "evaluate", "apply", "discover" ]
+			},
+			"uci": [ "chanmgr" ]
+		}
+	}
+}

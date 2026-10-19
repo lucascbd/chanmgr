@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ucode
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libjson-c-dev
+          git clone --depth 1 https://github.com/jow-/ucode.git /tmp/ucode
+          cmake -S /tmp/ucode -B /tmp/ucode/build \
+            -DUBUS_SUPPORT=OFF -DUCI_SUPPORT=OFF -DULOOP_SUPPORT=OFF \
+            -DRTNL_SUPPORT=OFF -DNL80211_SUPPORT=OFF -DDEBUG_SUPPORT=OFF \
+            -DLOG_SUPPORT=OFF -DDIGEST_SUPPORT=OFF
+          cmake --build /tmp/ucode/build -j
+
+      - name: Syntax check
+        run: |
+          for f in files/usr/share/ucode/chanmgr/*.uc files/usr/share/rpcd/ucode/chanmgr.uc files/usr/sbin/chanmgr; do
+            /tmp/ucode/build/ucode -S -c -o /dev/null "$f"
+          done
+          for f in luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/*.js; do
+            node --check "$f"
+          done
+
+      - name: Unit tests
+        run: UCODE=/tmp/ucode/build/ucode UCODE_LIB=/tmp/ucode/build ./tests/run.sh

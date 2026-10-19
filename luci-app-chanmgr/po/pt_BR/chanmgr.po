@@ -1,0 +1,379 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+
+msgid "(current)"
+msgstr "(atual)"
+
+msgid "(planned)"
+msgstr "(planejado)"
+
+msgid "2.4 GHz channels"
+msgstr "Canais de 2,4 GHz"
+
+msgid "A neighbor received at this level costs 1.0; every +10 dB multiplies the cost by 10."
+msgstr "Um vizinho recebido neste nível custa 1,0; cada +10 dB multiplica o custo por 10."
+
+msgid "Advanced"
+msgstr "Avançado"
+
+msgid "Allow DFS channels"
+msgstr "Permitir canais DFS"
+
+msgid "Applied"
+msgstr "Aplicado"
+
+msgid "Apply automatically"
+msgstr "Aplicar automaticamente"
+
+msgid "Apply plan now"
+msgstr "Aplicar plano agora"
+
+msgid "Applying the plan, one radio at a time."
+msgstr "Aplicando o plano, um rádio por vez."
+
+msgid "BSSID"
+msgstr "BSSID"
+
+msgid "Beacons announcing the channel switch before it happens."
+msgstr "Beacons que anunciam a troca de canal antes que ela aconteça."
+
+msgid "Best channels"
+msgstr "Melhores canais"
+
+msgid "CSA beacon count"
+msgstr "Contagem de beacons do CSA"
+
+msgid "Candidate channels in the 2.4 GHz band. Only non-overlapping channels are recommended."
+msgstr "Canais candidatos na faixa de 2,4 GHz. Recomenda-se usar só canais sem sobreposição."
+
+msgid "Change recommended"
+msgstr "Troca recomendada"
+
+msgid "Channel"
+msgstr "Canal"
+
+msgid "Channel Manager"
+msgstr "Gerenciador de Canais"
+
+msgid "Channel changes"
+msgstr "Trocas de canal"
+
+msgid "Channel groups"
+msgstr "Grupos de canal"
+
+msgid "Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected."
+msgstr "Os canais 52–144 exigem uma verificação de disponibilidade silenciosa (de 1 a 10 minutos) e precisam ser abandonados quando um radar é detectado."
+
+msgid "Configuration"
+msgstr "Configuração"
+
+msgid "Confirmations"
+msgstr "Confirmações"
+
+msgid "Cost"
+msgstr "Custo"
+
+msgid "Cost added by a fully busy channel, compared to a neighbor received at the reference level."
+msgstr "Custo somado por um canal totalmente ocupado, em comparação com um vizinho recebido no nível de referência."
+
+msgid "Current channel"
+msgstr "Canal atual"
+
+msgid "Decision"
+msgstr "Decisão"
+
+msgid "Details"
+msgstr "Detalhes"
+
+msgid "Devices whose radios are managed. A node without host is this device. Remote nodes need the chanmgr package and an rpcd login with the \"chanmgr-agent\" ACL."
+msgstr "Dispositivos cujos rádios são gerenciados. Um nó sem host é este dispositivo. Nós remotos precisam do pacote chanmgr e de um login do rpcd com a ACL \"chanmgr-agent\"."
+
+msgid "Enable scheduler"
+msgstr "Ativar agendador"
+
+msgid "Enabled"
+msgstr "Ativado"
+
+msgid "Evaluate now"
+msgstr "Avaliar agora"
+
+msgid "Evaluation started. Scanning briefly interrupts Wi-Fi clients; results appear here when done."
+msgstr "Avaliação iniciada. A varredura interrompe os clientes Wi-Fi por um instante; os resultados aparecem aqui ao terminar."
+
+msgid "Evaluation times"
+msgstr "Horários de avaliação"
+
+msgid "Excluded radios"
+msgstr "Rádios excluídos"
+
+msgid "Expecting node/radio"
+msgstr "Esperado nó/rádio"
+
+msgid "Expecting space-separated times in HH:MM format"
+msgstr "Esperados horários no formato HH:MM, separados por espaço"
+
+msgid "Failed"
+msgstr "Falhou"
+
+msgid "Falls back to \"wifi reload\", which disconnects all clients of the node."
+msgstr "Recorre a \"wifi reload\", que desconecta todos os clientes do nó."
+
+msgid "General"
+msgstr "Geral"
+
+msgid "Grant access to the Wi-Fi channel manager"
+msgstr "Conceder acesso ao gerenciador de canais Wi-Fi"
+
+msgid "Host"
+msgstr "Host"
+
+msgid "Item"
+msgstr "Item"
+
+msgid "Keep current channels"
+msgstr "Manter canais atuais"
+
+msgid "Last error"
+msgstr "Último erro"
+
+msgid "Last evaluation"
+msgstr "Última avaliação"
+
+msgid "Last utilization sample"
+msgstr "Última amostra de utilização"
+
+msgid "Leave empty for this device."
+msgstr "Deixe vazio para este dispositivo."
+
+msgid "Locked"
+msgstr "Travado"
+
+msgid "Locked radios"
+msgstr "Rádios travados"
+
+msgid "Log"
+msgstr "Log"
+
+msgid "Measures channel congestion on the configured access points and moves their radios to the least congested channels, coordinating your own access points with each other."
+msgstr "Mede o congestionamento dos canais nos access points configurados e move os rádios para os canais menos congestionados, coordenando seus próprios access points entre si."
+
+msgid "Members"
+msgstr "Membros"
+
+msgid "Minimum absolute gain"
+msgstr "Ganho absoluto mínimo"
+
+msgid "Minimum interval between switches"
+msgstr "Intervalo mínimo entre trocas"
+
+msgid "Minimum relative gain (%)"
+msgstr "Ganho relativo mínimo (%)"
+
+msgid "Mode"
+msgstr "Modo"
+
+msgid "Multiplier for the interference between your own access points."
+msgstr "Multiplicador da interferência entre os seus próprios access points."
+
+msgid "Neighbor networks (%d)"
+msgstr "Redes vizinhas (%d)"
+
+msgid "Neighbors"
+msgstr "Vizinhos"
+
+msgid "No changes yet"
+msgstr "Nenhuma troca ainda"
+
+msgid "No data"
+msgstr "Sem dados"
+
+msgid "No evaluation yet. Press \"Evaluate now\" or wait for the next scheduled run."
+msgstr "Nenhuma avaliação ainda. Clique em \"Avaliar agora\" ou aguarde a próxima execução agendada."
+
+msgid "No log messages"
+msgstr "Nenhuma mensagem de log"
+
+msgid "No neighbors seen"
+msgstr "Nenhum vizinho detectado"
+
+msgid "No radios"
+msgstr "Nenhum rádio"
+
+msgid "Node"
+msgstr "Nó"
+
+msgid "Node %s"
+msgstr "Nó %s"
+
+msgid "Nodes"
+msgstr "Nós"
+
+msgid "Number of consecutive evaluations that must propose the same plan."
+msgstr "Número de avaliações consecutivas que precisam propor o mesmo plano."
+
+msgid "On hold"
+msgstr "Em espera"
+
+msgid "Only switch if the total cost drops by at least this percentage."
+msgstr "Só troca se o custo total cair pelo menos esta porcentagem."
+
+msgid "Overview"
+msgstr "Visão geral"
+
+msgid "Own AP weight"
+msgstr "Peso dos APs próprios"
+
+msgid "Own APs"
+msgstr "APs próprios"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Pause between nodes"
+msgstr "Pausa entre nós"
+
+msgid "Pause between switches"
+msgstr "Pausa entre trocas"
+
+msgid "Periodically scans the Wi-Fi channels of the configured nodes and moves their radios to the least congested channels. Start in \"recommend only\" mode and check the plans on the status page before enabling automatic switching."
+msgstr "Varre periodicamente os canais Wi-Fi dos nós configurados e move os rádios para os canais menos congestionados. Comece no modo \"Só recomendar\" e confira os planos na página de status antes de ativar a troca automática."
+
+msgid "Plan"
+msgstr "Plano"
+
+msgid "Plan for %s"
+msgstr "Plano para %s"
+
+msgid "Planned channel"
+msgstr "Canal planejado"
+
+msgid "Port"
+msgstr "Porta"
+
+msgid "Radio"
+msgstr "Rádio"
+
+msgid "Radios"
+msgstr "Rádios"
+
+msgid "Radios (e.g. radio0) that are measured and avoided by the others but never moved."
+msgstr "Rádios (ex.: radio0) que são medidos e evitados pelos outros, mas nunca movidos."
+
+msgid "Radios that are ignored completely."
+msgstr "Rádios ignorados por completo."
+
+msgid "Radios that must always share a channel, such as the members of an 802.11s mesh. They are moved together. A radio with a mesh interface that is not in a group is never moved."
+msgstr "Rádios que precisam sempre compartilhar o mesmo canal, como os membros de uma mesh 802.11s. Eles são movidos juntos. Um rádio com interface mesh que não está em um grupo nunca é movido."
+
+msgid "Recommend only"
+msgstr "Só recomendar"
+
+msgid "Reference signal (dBm)"
+msgstr "Sinal de referência (dBm)"
+
+msgid "Reload Wi-Fi if CSA fails"
+msgstr "Recarregar o Wi-Fi se o CSA falhar"
+
+msgid "Result"
+msgstr "Resultado"
+
+msgid "Running"
+msgstr "Em execução"
+
+msgid "SSID"
+msgstr "SSID"
+
+msgid "Samples channel utilization and runs the scheduled evaluations. Manual evaluations work without it."
+msgstr "Amostra a utilização dos canais e executa as avaliações agendadas. Avaliações manuais funcionam sem ele."
+
+msgid "Sampling interval"
+msgstr "Intervalo de amostragem"
+
+msgid "Seconds a radio must stay on a channel before it can be moved again."
+msgstr "Segundos que um rádio precisa ficar num canal antes de poder ser movido de novo."
+
+msgid "Seconds between passive utilization samples of the current channels."
+msgstr "Segundos entre as amostras passivas de utilização dos canais atuais."
+
+msgid "Seconds between switching two radios."
+msgstr "Segundos entre a troca de dois rádios."
+
+msgid "Seconds between the scans of two nodes, so they are never off-channel at the same time."
+msgstr "Segundos entre as varreduras de dois nós, para que nunca saiam do canal ao mesmo tempo."
+
+msgid "Signal"
+msgstr "Sinal"
+
+msgid "Skip certificate check"
+msgstr "Ignorar verificação do certificado"
+
+msgid "Space-separated local times (HH:MM). Scanning takes the radios off-channel for a moment, so prefer quiet hours."
+msgstr "Horários locais (HH:MM) separados por espaço. A varredura tira os rádios do canal por um instante, então prefira horários de pouco uso."
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Switch the radios to the planned channels now? Clients will follow the channel switch announcement; some may reconnect."
+msgstr "Trocar os rádios para os canais planejados agora? Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."
+
+msgid "Switching"
+msgstr "Trocando"
+
+msgid "Time"
+msgstr "Horário"
+
+msgid "Timeout (s)"
+msgstr "Tempo limite (s)"
+
+msgid "Total cost: current %s, best %s (gain %s / %s). Evaluated %s."
+msgstr "Custo total: atual %s, melhor %s (ganho %s / %s). Avaliado em %s."
+
+msgid "Use HTTPS"
+msgstr "Usar HTTPS"
+
+msgid "Username"
+msgstr "Usuário"
+
+msgid "Utilization"
+msgstr "Utilização"
+
+msgid "Utilization weight"
+msgstr "Peso da utilização"
+
+msgid "Value"
+msgstr "Valor"
+
+msgid "Waiting for confirmation"
+msgstr "Aguardando confirmação"
+
+msgid "Width"
+msgstr "Largura"
+
+msgid "failed"
+msgstr "falhou"
+
+msgid "hidden"
+msgstr "oculta"
+
+msgid "idle"
+msgstr "ocioso"
+
+msgid "no radios"
+msgstr "sem rádios"
+
+msgid "node/radio, e.g. ap1/radio1"
+msgstr "nó/rádio, ex.: ap1/radio1"
+
+msgid "ok"
+msgstr "ok"
+
+msgid "this device"
+msgstr "este dispositivo"
+
+msgid "utilization %s"
+msgstr "utilização %s"

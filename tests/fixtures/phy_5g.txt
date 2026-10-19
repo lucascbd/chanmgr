@@ -1,0 +1,22 @@
+Wiphy phy1
+	Band 2:
+		Frequencies:
+			* 5180.0 MHz [36] (23.0 dBm)
+			* 5200.0 MHz [40] (23.0 dBm)
+			* 5220.0 MHz [44] (23.0 dBm)
+			* 5240.0 MHz [48] (23.0 dBm)
+			* 5260.0 MHz [52] (23.0 dBm) (no IR, radar detection)
+			* 5280.0 MHz [56] (23.0 dBm) (no IR, radar detection)
+			* 5300.0 MHz [60] (23.0 dBm) (no IR, radar detection)
+			* 5320.0 MHz [64] (23.0 dBm) (no IR, radar detection)
+			* 5500.0 MHz [100] (23.0 dBm) (no IR, radar detection)
+			* 5520.0 MHz [104] (23.0 dBm) (no IR, radar detection)
+			* 5540.0 MHz [108] (23.0 dBm) (no IR, radar detection)
+			* 5560.0 MHz [112] (23.0 dBm) (no IR, radar detection)
+			* 5745.0 MHz [149] (30.0 dBm)
+			* 5765.0 MHz [153] (30.0 dBm)
+			* 5785.0 MHz [157] (30.0 dBm)
+			* 5805.0 MHz [161] (30.0 dBm)
+			* 5825.0 MHz [165] (30.0 dBm)
+			* 5845.0 MHz [169] (disabled)
+	valid interface combinations:

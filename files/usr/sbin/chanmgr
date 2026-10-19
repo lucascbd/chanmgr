@@ -1,0 +1,71 @@
+#!/usr/bin/ucode
+// SPDX-License-Identifier: GPL-2.0-only
+
+'use strict';
+
+let ctl = require('chanmgr.controller');
+let agent = require('chanmgr.agent');
+
+function usage() {
+	warn(
+		'Usage: chanmgr <command> [options]\n\n' +
+		'Commands:\n' +
+		'  status                  Print the last evaluation (JSON)\n' +
+		'  discover                Query all nodes and list their radios\n' +
+		'  sample                  Take one channel-utilization sample\n' +
+		'  evaluate [--apply|--dry-run] [--no-gap]\n' +
+		'                          Scan, plan and (in apply mode) switch\n' +
+		'  apply                   Apply the latest plan now, ignoring hysteresis\n' +
+		'  daemon                  Run the scheduler (used by the init script)\n' +
+		'  agent info|survey       Local agent queries\n' +
+		'  agent scan <radio>\n\n' +
+		'Set CHANMGR_VERBOSE=1 to also print log messages.\n'
+	);
+
+	exit(1);
+}
+
+let args = ARGV, cmd = shift(args);
+let has = (f) => index(args, f) >= 0;
+let out = (v) => print(sprintf('%.J\n', v));
+
+switch (cmd) {
+case 'status':
+	out(ctl.status());
+	break;
+
+case 'discover':
+	out(ctl.discover());
+	break;
+
+case 'sample':
+	out(ctl.sample());
+	break;
+
+case 'evaluate':
+	out(ctl.evaluate({
+		apply: has('--apply') ? true : has('--dry-run') ? false : null,
+		nogap: has('--no-gap')
+	}));
+	break;
+
+case 'apply':
+	out(ctl.apply());
+	break;
+
+case 'daemon':
+	ctl.daemon();
+	break;
+
+case 'agent':
+	switch (shift(args)) {
+	case 'info': out(agent.info()); break;
+	case 'survey': out(agent.survey()); break;
+	case 'scan': out(agent.scan(args[0])); break;
+	default: usage();
+	}
+	break;
+
+default:
+	usage();
+}
