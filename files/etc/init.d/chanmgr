@@ -4,6 +4,12 @@
 START=99
 USE_PROCD=1
 
+boot() {
+	# a channel switch interrupted by a power loss: go back to the old channel
+	/usr/sbin/chanmgr agent recover >/dev/null 2>&1
+	start "$@"
+}
+
 start_service() {
 	config_load chanmgr
 	config_get_bool enabled main enabled 0

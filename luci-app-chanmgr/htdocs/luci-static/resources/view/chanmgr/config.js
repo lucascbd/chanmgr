@@ -118,10 +118,22 @@ return view.extend({
 		o.placeholder = '10';
 
 		o = s.taboption('advanced', form.ListValue, 'mesh_method', _('Switching radios with mesh'),
-			_('Radios that also carry an 802.11s mesh interface. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down.'));
-		o.value('reload', _('Restart the radio (clients reconnect)'));
+			_('Radios that also carry an 802.11s mesh interface. With the guarded restart every node switches on its own and goes back to the old channel by itself if its radio or its mesh peers do not come back, or if this controller cannot confirm the switch. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down.'));
+		o.value('reload', _('Guarded restart (recommended)'));
 		o.value('csa', _('Channel switch announcement (experimental)'));
 		o.default = 'reload';
+
+		o = s.taboption('advanced', form.Value, 'guard_mesh_timeout', _('Mesh recovery timeout'),
+			_('Seconds a node waits for its mesh peers on the new channel before it returns to the old one on its own.'));
+		o.datatype = 'range(20,600)';
+		o.placeholder = '90';
+		o.depends('mesh_method', 'reload');
+
+		o = s.taboption('advanced', form.Value, 'guard_confirm_timeout', _('Confirmation timeout'),
+			_('Seconds a node waits for this controller to confirm the switch (only possible when every node of the group is reachable on the new channel) before it returns to the old one on its own.'));
+		o.datatype = 'range(30,1800)';
+		o.placeholder = '240';
+		o.depends('mesh_method', 'reload');
 
 		o = s.taboption('advanced', form.Flag, 'reload_fallback', _('Reload Wi-Fi if CSA fails'),
 			_('Falls back to "wifi reload", which disconnects all clients of the node.'));

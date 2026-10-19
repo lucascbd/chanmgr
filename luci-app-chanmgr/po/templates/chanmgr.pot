@@ -546,3 +546,27 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/config.js
 msgid "Channel switch announcement (experimental)"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Guarded restart (recommended)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Mesh recovery timeout"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Seconds a node waits for its mesh peers on the new channel before it returns to the old one on its own."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Confirmation timeout"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Seconds a node waits for this controller to confirm the switch (only possible when every node of the group is reachable on the new channel) before it returns to the old one on its own."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Radios that also carry an 802.11s mesh interface. With the guarded restart every node switches on its own and goes back to the old channel by itself if its radio or its mesh peers do not come back, or if this controller cannot confirm the switch. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
+msgstr ""

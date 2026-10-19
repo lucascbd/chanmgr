@@ -5,6 +5,7 @@
 
 let ctl = require('chanmgr.controller');
 let agent = require('chanmgr.agent');
+let guard = require('chanmgr.guard');
 
 function usage() {
 	warn(
@@ -20,8 +21,11 @@ function usage() {
 		'  agent info|survey       Local agent queries\n' +
 		'  agent scan <radio>\n' +
 		'  agent switch <radio> <channel> [width] [--csa]\n' +
-		'                          Switch a local radio now, as apply does (radios\n' +
-		'                          with mesh are restarted unless --csa is given)\n\n' +
+		'                          Switch a local radio now. Radios with mesh get a\n' +
+		'                          guarded restart: back to the old channel unless the\n' +
+		'                          radio and its mesh peers come back within 90 s\n' +
+		'  agent status <radio>    State of the last guarded switch\n' +
+		'  agent recover           Undo unfinished switches (run at boot)\n\n' +
 		'Set CHANMGR_VERBOSE=1 to also print log messages.\n'
 	);
 
@@ -93,13 +97,45 @@ case 'agent':
 		if (!args[0] || !args[1])
 			usage();
 
-		// same rule as the controller: radios with a mesh interface are restarted
-		let mesh = agent.info().radios[args[0]]?.has_mesh;
+		let width = +(match(args[2] ?? '', /^[0-9]+$/) ? args[2] : 0);
 
-		out(agent.switch_channel({
-			radio: args[0], channel: +args[1], width: +(match(args[2] ?? '', /^[0-9]+$/) ? args[2] : 0),
-			method: (mesh && !has('--csa')) ? 'reload' : 'csa'
-		}));
+		// radios with a mesh interface: guarded restart, rolled back unless
+		// the radio and its mesh peers come back (no controller involved)
+		if (agent.info().radios[args[0]]?.has_mesh && !has('--csa')) {
+			let r = guard.start({ radio: args[0], channel: args[1], width, delay: 1, confirm_timeout: 0 });
+
+			out(r);
+
+			if (r.ok)
+				print(sprintf('Guarded switch started. Follow it with: chanmgr agent status %s\n', args[0]));
+
+			break;
+		}
+
+		out(agent.switch_channel({ radio: args[0], channel: +args[1], width, method: 'csa' }));
+		break;
+
+	case 'status':
+		out(guard.status(args[0]));
+		break;
+
+	case 'guard': {
+		// internal: the background part of a guarded switch
+		let a = { radio: args[0] };
+
+		for (let kv in slice(args, 1)) {
+			let m = match(kv, /^([a-z_]+)=(-?[0-9]+)$/);
+
+			if (m)
+				a[m[1]] = +m[2];
+		}
+
+		out(guard.run(a));
+		break;
+	}
+
+	case 'recover':
+		out(guard.recover());
 		break;
 	default: usage();
 	}

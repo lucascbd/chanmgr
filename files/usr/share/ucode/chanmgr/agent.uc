@@ -99,7 +99,7 @@ function info() {
 	}
 
 	// agent: feature level, lets the controller refuse what an old agent cannot do
-	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 2, radios, down };
+	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 3, radios, down };
 }
 
 // Survey counters of every radio (passive, no off-channel time).
@@ -136,6 +136,17 @@ function scan(radio) {
 		neighbors: bss,
 		survey: parse.survey(iw('dev ' + shq(r.ifname) + ' survey dump'))
 	};
+}
+
+// Number of established 802.11s peers on the given interfaces.
+function mesh_peers(ifnames) {
+	let n = 0;
+
+	for (let ifname in ifnames)
+		n += length(filter(split(iw('dev ' + shq(ifname) + ' station dump') ?? '', '\n'),
+			(l) => match(l, /mesh plink:\s+ESTAB/)));
+
+	return n;
 }
 
 function current_freq(ifname) {
@@ -269,4 +280,4 @@ function confirm(args) {
 	return { ok };
 }
 
-return { info, survey, scan, switch_channel, confirm, verify };
+return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, mesh_peers };

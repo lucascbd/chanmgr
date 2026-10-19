@@ -1,8 +1,15 @@
 #!/bin/sh
-# Test stand-in for wifi: "reload"/"up" bring the radio up on $CHANMGR_RUN_DIR/next.
-echo "wifi $*" >> "$CHANMGR_RUN_DIR/iw.log"
+# Test stand-in for wifi. "reload"/"up" take the next line of
+# $CHANMGR_RUN_DIR/next ("<freq|down> [peers]"); the last line stays.
+d=$CHANMGR_RUN_DIR
+echo "wifi $*" >> "$d/iw.log"
 case "$1" in
-reload|up) [ -f "$CHANMGR_RUN_DIR/next" ] && cp "$CHANMGR_RUN_DIR/next" "$CHANMGR_RUN_DIR/freq";;
-down) echo down > "$CHANMGR_RUN_DIR/freq";;
+reload|up)
+	[ -f "$d/next" ] || exit 0
+	set -- $(head -n 1 "$d/next")
+	echo "$1" > "$d/freq"
+	[ -n "$2" ] && echo "$2" > "$d/peers"
+	[ "$(wc -l < "$d/next")" -gt 1 ] && sed -i 1d "$d/next";;
+down) echo down > "$d/freq";;
 esac
 exit 0

@@ -410,3 +410,21 @@ msgstr "Reiniciar o rádio (clientes reconectam)"
 
 msgid "Channel switch announcement (experimental)"
 msgstr "Anúncio de troca de canal (experimental)"
+
+msgid "Guarded restart (recommended)"
+msgstr "Reinício protegido (recomendado)"
+
+msgid "Mesh recovery timeout"
+msgstr "Tempo para o mesh voltar"
+
+msgid "Seconds a node waits for its mesh peers on the new channel before it returns to the old one on its own."
+msgstr "Segundos que um nó espera os vizinhos de mesh no canal novo antes de voltar sozinho para o canal antigo."
+
+msgid "Confirmation timeout"
+msgstr "Tempo para a confirmação"
+
+msgid "Seconds a node waits for this controller to confirm the switch (only possible when every node of the group is reachable on the new channel) before it returns to the old one on its own."
+msgstr "Segundos que um nó espera este controlador confirmar a troca (só possível quando todos os nós do grupo respondem no canal novo) antes de voltar sozinho para o canal antigo."
+
+msgid "Radios that also carry an 802.11s mesh interface. With the guarded restart every node switches on its own and goes back to the old channel by itself if its radio or its mesh peers do not come back, or if this controller cannot confirm the switch. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
+msgstr "Rádios que também têm uma interface mesh 802.11s. No reinício protegido, cada nó troca de canal por conta própria e volta sozinho para o canal antigo se o rádio ou os vizinhos de mesh não voltarem, ou se este controlador não conseguir confirmar a troca. Nem todo driver suporta anúncio de troca de canal nesses rádios, e ele pode deixar o rádio desligado."

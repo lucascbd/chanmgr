@@ -10,6 +10,7 @@ let chan = require('chanmgr.chan');
 let score = require('chanmgr.score');
 let agent = require('chanmgr.agent');
 let remote = require('chanmgr.remote');
+let guard = require('chanmgr.guard');
 
 const RUN_DIR = getenv('CHANMGR_RUN_DIR') ?? '/tmp/chanmgr';
 const STATE_FILE = RUN_DIR + '/state.json';
@@ -35,7 +36,7 @@ function list(v) {
 function config() {
 	let c = uci.cursor();
 	let m = c.get_all('chanmgr', 'main') ?? {};
-	let n = (v, d) => (v != null && v != '') ? +v : d;
+	let n = (v, d) => (v != null && v !== '') ? +v : d;
 
 	let cfg = {
 		enabled: m.enabled == '1',
@@ -57,6 +58,10 @@ function config() {
 		// radios with a mesh interface: "reload" restarts them on the new
 		// channel; "csa" (experimental) announces the switch like for APs
 		mesh_method: (m.mesh_method == 'csa') ? 'csa' : 'reload',
+		// guarded switch of mesh radios: seconds the agents wait for their
+		// mesh peers and for the controller's confirmation before going back
+		guard_mesh_timeout: n(m.guard_mesh_timeout, 90),
+		guard_confirm_timeout: n(m.guard_confirm_timeout, 240),
 		channels_2g: map(list(m.channels_2g ?? '1 6 11'), (x) => +x),
 		max_combos: n(m.max_combos, 50000),
 		nodes: [],
@@ -179,7 +184,11 @@ function handle(node) {
 			survey: () => agent.survey(),
 			scan: (a) => agent.scan(a.radio),
 			switch: (a) => agent.switch_channel(a),
-			confirm: (a) => agent.confirm(a)
+			confirm: (a) => agent.confirm(a),
+			guard_start: (a) => guard.start(a),
+			guard_status: (a) => guard.status(a.radio),
+			guard_confirm: (a) => guard.confirm(a.radio),
+			guard_abort: (a) => guard.abort(a.radio)
 		};
 
 		return {
@@ -491,14 +500,18 @@ function switch_method(cfg, st, rid) {
 	if (!n?.radios?.[nr[1]]?.has_mesh || cfg.mesh_method == 'csa')
 		return { method: 'csa' };
 
-	if ((n.agent ?? 1) < 2)
-		return { error: 'update chanmgr on ' + nr[0] + ': its agent cannot restart mesh radios safely' };
+	if ((n.agent ?? 1) < 3)
+		return { error: 'update chanmgr on ' + nr[0] + ': its agent cannot switch mesh radios safely' };
 
-	return { method: 'reload' };
+	return { method: 'guard' };
 }
 
 function switch_one(cfg, st, handles, rid, from, to) {
 	let m = switch_method(cfg, st, rid);
+
+	if (m.method == 'guard')
+		return switch_guarded(cfg, st, handles, rid, [ rid ], from, to);
+
 	let res = m.error ? { ok: false, errors: [ m.error ] } : node_call(handles, rid, 'switch', {
 		channel: to.channel, width: to.width, method: m.method,
 		bcn_count: cfg.bcn_count, reload_fallback: cfg.reload_fallback
@@ -510,6 +523,96 @@ function switch_one(cfg, st, handles, rid, from, to) {
 		log('err', '%s: switch to channel %d failed: %s', rid, to.channel, join('; ', res.errors ?? []));
 
 	return res.ok;
+}
+
+// Guarded switch of radios that carry mesh links (see guard.uc): every
+// member switches on its own and returns to the old channel by itself unless
+// its radio and mesh peers come back AND this controller confirms. The
+// controller confirms only once all members report healthy, so the members
+// never stay split across channels; when one fails, the others are aborted.
+// The 10 s start delay lets the order reach every member before the first
+// one moves (members behind the mesh are reached through the others).
+function switch_guarded(cfg, st, handles, id, rids, from, to) {
+	let tick = +(getenv('CHANMGR_GUARD_TICK') ?? 5000);
+	let started = [];
+
+	for (let rid in rids) {
+		let r = node_call(handles, rid, 'guard_start', {
+			channel: to.channel, width: to.width, delay: 10,
+			mesh_timeout: cfg.guard_mesh_timeout, confirm_timeout: cfg.guard_confirm_timeout
+		}, 30);
+
+		if (!r.ok) {
+			let why = r.error ?? (join('; ', r.errors ?? []) || 'could not start');
+
+			log('err', '%s: switch not started on %s: %s', id, rid, why);
+
+			for (let s in started)
+				node_call(handles, s, 'guard_abort', {}, 10);
+
+			add_history(st, { rid, from: from?.channel, to: to.channel, width: to.width, ok: false, msg: 'not started: ' + why });
+
+			return false;
+		}
+
+		push(started, rid);
+	}
+
+	log('notice', '%s: guarded switch %d -> %d started on %s', id, from?.channel, to.channel, join(', ', rids));
+
+	let deadline = time() + cfg.guard_confirm_timeout + cfg.guard_mesh_timeout + 120;
+	let state = {}, msg = {}, aborted = false;
+	let all = (fn) => length(filter(rids, (r) => fn(state[r]))) == length(rids);
+	let any = (fn) => length(filter(rids, (r) => fn(state[r]))) > 0;
+	let good = (s) => s == 'confirmed' || s == 'done';
+
+	while (time() < deadline) {
+		sleep(tick);
+
+		// members behind a moving mesh link are unreachable for a while
+		for (let rid in rids) {
+			let s = node_call(handles, rid, 'guard_status', {}, 10);
+
+			if (s.state) {
+				state[rid] = s.state;
+				msg[rid] = s.msg;
+			}
+		}
+
+		if (all((s) => guard.FINAL[s]))
+			break;
+
+		if (!aborted && any((s) => s == 'rolling_back' || s == 'rolled_back' || s == 'failed')) {
+			aborted = true;
+			log('warn', '%s: a member failed, sending everyone back to channel %d', id, from?.channel);
+
+			for (let rid in rids)
+				if (!guard.FINAL[state[rid]])
+					node_call(handles, rid, 'guard_abort', {}, 10);
+		}
+
+		if (!aborted && all((s) => s == 'waiting_confirm' || good(s))) {
+			for (let rid in rids)
+				if (state[rid] == 'waiting_confirm')
+					node_call(handles, rid, 'guard_confirm', {}, 10);
+		}
+
+		if (!aborted && all(good))
+			break;
+	}
+
+	let ok = !aborted && all(good);
+
+	for (let rid in rids)
+		add_history(st, {
+			rid, from: from?.channel, to: to.channel, width: to.width, ok,
+			msg: ok ? 'guarded switch' : sprintf('%s%s', state[rid] ?? 'unreachable', msg[rid] ? ': ' + msg[rid] : '')
+		});
+
+	if (!ok && !all((s) => guard.FINAL[s]))
+		log('warn', '%s: some members are still finishing; they return to channel %d on their own', id, from?.channel);
+
+	return ok;
 }
 
 // Members of a group (e.g. an 802.11s mesh) must end up on the same channel:
@@ -525,6 +628,9 @@ function switch_group(cfg, st, handles, u) {
 
 		return false;
 	}
+
+	if (length(filter(methods, (m) => m.method == 'guard')))
+		return switch_guarded(cfg, st, handles, u.id, u.radios, u.current, u.best);
 
 	let reload = length(filter(methods, (m) => m.method == 'reload')) > 0;
 
@@ -769,4 +875,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded };

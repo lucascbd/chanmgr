@@ -183,10 +183,16 @@ the local device. Each `config group` takes `list member 'node/radio'`.
 * The channel width stays at the configured `htmode`. A fallback to a narrower width
   when 80 MHz blocks are all busy is planned.
 * A channel switch announcement on a radio that hosts both AP and mesh
-  interfaces can leave the radio down (seen on mt76). Such radios are therefore
-  switched by restarting them on the new channel (`mesh_method 'reload'`), which
-  disconnects their clients for a few seconds. When a CSA fails on any radio,
-  the agent restarts it on its previous channel.
+  interfaces can leave the radio down (seen on mt76). Such radios therefore get
+  a *guarded restart* (`mesh_method 'reload'`), which disconnects their clients
+  for a few seconds. Each node switches on its own and returns to the previous
+  channel by itself when its radio does not come up, when its mesh peers do not
+  return (`guard_mesh_timeout`), when the controller does not confirm
+  (`guard_confirm_timeout`; the controller confirms only once every member of
+  the group answers on the new channel), or when its mesh disappears within
+  5 minutes after the switch. A marker in `/etc` restores the old channel at
+  boot if power is lost mid-switch. This works without any wired link, since
+  the decision never depends on reaching the controller.
 
 ## Tests
 

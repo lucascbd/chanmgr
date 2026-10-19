@@ -19,8 +19,12 @@ config chanmgr 'main'
 	option ref_rssi '-70'
 	option bcn_count '10'
 	option reload_fallback '0'
-	# radios with a mesh interface: reload (restart the radio) or csa
+	# radios with a mesh interface: reload (guarded restart) or csa
 	option mesh_method 'reload'
+	# guarded restart: nodes go back on their own unless their mesh peers
+	# return and the controller confirms within these times (seconds)
+	option guard_mesh_timeout '90'
+	option guard_confirm_timeout '240'
 	list channels_2g '1'
 	list channels_2g '6'
 	list channels_2g '11'

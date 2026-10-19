@@ -7,6 +7,7 @@
 let fs = require('fs');
 let agent = require('chanmgr.agent');
 let ctl = require('chanmgr.controller');
+let guard = require('chanmgr.guard');
 
 // long operations run detached; LuCI polls "status"
 function background(cmd) {
@@ -49,6 +50,13 @@ return {
 			args: { radio: '', channel: 0, width: 0, bcn_count: 0, nowait: false, reload_fallback: false, method: '' },
 			call: wrap((a) => agent.switch_channel(a))
 		},
-		agent_confirm: { args: { radio: '', channel: 0, timeout: 0 }, call: wrap((a) => agent.confirm(a)) }
+		agent_confirm: { args: { radio: '', channel: 0, timeout: 0 }, call: wrap((a) => agent.confirm(a)) },
+		agent_guard_start: {
+			args: { radio: '', channel: 0, width: 0, delay: 0, up_timeout: 0, mesh_timeout: 0, confirm_timeout: 0, watch: 0, mesh_lost: 0 },
+			call: wrap((a) => guard.start(a))
+		},
+		agent_guard_status: { args: { radio: '' }, call: wrap((a) => guard.status(a.radio)) },
+		agent_guard_confirm: { args: { radio: '' }, call: wrap((a) => guard.confirm(a.radio)) },
+		agent_guard_abort: { args: { radio: '' }, call: wrap((a) => guard.abort(a.radio)) }
 	}
 };
