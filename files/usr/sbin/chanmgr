@@ -11,7 +11,7 @@ function usage() {
 		'Usage: chanmgr <command> [options]\n\n' +
 		'Commands:\n' +
 		'  status                  Print the last evaluation (JSON)\n' +
-		'  discover                Query all nodes and list their radios\n' +
+		'  discover [--json]       Query all nodes and list their radios\n' +
 		'  sample                  Take one channel-utilization sample\n' +
 		'  evaluate [--apply|--dry-run] [--no-gap]\n' +
 		'                          Scan, plan and (in apply mode) switch\n' +
@@ -35,7 +35,28 @@ case 'status':
 	break;
 
 case 'discover':
-	out(ctl.discover());
+	let found = ctl.discover();
+
+	if (has('--json')) {
+		out(found);
+		break;
+	}
+
+	for (let name, r in found) {
+		if (r.error) {
+			print(sprintf('%s: ERROR %s\n', name, r.error));
+			continue;
+		}
+
+		print(sprintf('%s (%s)\n', name, r.data.hostname));
+
+		for (let radio, d in r.data.radios)
+			print(sprintf('  %s/%s  %s  channel %d  %d MHz  %s  [%s]%s\n',
+				name, radio, d.band, d.channel, d.width, d.htmode,
+				join(', ', map(d.ifaces, (i) => i.ifname + ':' + i.mode)),
+				d.has_mesh ? '  mesh: put it in a group or it stays locked' : ''));
+	}
+
 	break;
 
 case 'sample':
