@@ -498,7 +498,7 @@ function record_chanstats(st, rid, survey, days, now, current) {
 
 	// keep a little more than the analysis window
 	for (let f, c in h) {
-		c.samples = filter(c.samples, (x) => x[0] >= now - (days + 1) * 86400);
+		c.samples = filter(c.samples, (x) => x[0] >= now - (days + 1) * 86400);  // > window + grace
 
 		if (length(c.samples) > 200)
 			c.samples = slice(c.samples, -200);
@@ -507,11 +507,16 @@ function record_chanstats(st, rid, survey, days, now, current) {
 
 // Mean busy fraction per frequency over the last `days`, with sample count
 // and age of the oldest sample.
+// Evaluations run at about the same time every day, never exactly 24 h
+// apart: a few hours of grace keep the sample of `days` ago in the window
+// and let that window count as complete (see DATA_GRACE).
+const DATA_GRACE = 6 * 3600;
+
 function chanstats_summary(h, days, now) {
 	let util = {}, count = {}, first = {};
 
 	for (let f, c in h ?? {}) {
-		let xs = filter(c.samples, (x) => x[0] >= now - days * 86400);
+		let xs = filter(c.samples, (x) => x[0] >= now - days * 86400 - DATA_GRACE);
 
 		if (!length(xs))
 			continue;
@@ -597,7 +602,7 @@ function capacity_model(cfg, st, model, band, now) {
 
 		for (let u in units)
 			res[u.id] = !!best[u.id] && length(filter(u.radios, (rid) =>
-				radios[rid] && data(rid, best[u.id]).days < cfg.history_days)) == 0;
+				radios[rid] && data(rid, best[u.id]).days < cfg.history_days - DATA_GRACE / 86400.0)) == 0;
 
 		return res;
 	};

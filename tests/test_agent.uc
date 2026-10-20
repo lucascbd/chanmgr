@@ -46,6 +46,8 @@ return function(t) {
 	reset(5180);
 	let r = agent.switch_channel({ radio: 'radio1', channel: 149, width: 20, bcn_count: 1 });
 	t.eq([ r.ok, get('freq'), uci.data.wireless.radio1.channel ], [ true, '5745', '149' ], 'agent csa: switched + persisted');
+	let ch = agent.changes()[0];
+	t.eq([ ch.radio, ch.from, ch.to, ch.ok, ch.how ], [ 'radio1', 36, 149, true, 'csa' ], 'agent: change noted');
 	t.ok(index(get('iw.log'), 'switch freq 5745 20 5745') >= 0, 'agent csa: mesh interface switched too');
 
 	// CSA leaves the radio down: restarted on its configured channel, not persisted

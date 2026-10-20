@@ -52,7 +52,7 @@ return {
 				for (let radio in [ ...keys(info.radios), ...keys(info.down ?? {}) ])
 					guards[radio] = guard.status(radio);
 
-				return { role: ctl.config().role, info, guards, login: login.get() };
+				return { role: ctl.config().role, info, guards, changes: agent.changes(), login: login.get() };
 			})
 		},
 		get_login: { call: wrap(() => login.get()) },

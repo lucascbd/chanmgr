@@ -150,4 +150,14 @@ return function(t) {
 	agent.dev.survey = null;
 	agent.dev.radios.radio1.width = 80;
 	agent.dev.radios.radio1.htmode = 'HE80';
+
+	// a window of N days is complete with daily evaluations a bit less than N x 24 h apart
+	let hs = { chanstats: {} }, t0 = 2000000;
+
+	for (let d = 0; d <= 3; d++)
+		ctl.record_chanstats(hs, 'x', [ { freq: 5745, active: 100 * (d + 1), busy: 10 * (d + 1) } ], 3, t0 + d * 86400 - d * 600);
+
+	let sm = ctl.chanstats_summary(hs.chanstats.x, 3, t0 + 3 * 86400 - 1800);
+	t.eq(sm.count['5745'], 4, 'grace: sample from 3 days ago kept');
+	t.ok((t0 + 3 * 86400 - 1800 - sm.first['5745']) / 86400.0 >= 3 - 0.25, 'grace: window counts as 3 days');
 };

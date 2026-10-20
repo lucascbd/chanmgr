@@ -40,12 +40,15 @@ return function(t) {
 	t.eq([ get('freq'), uci.data.wireless.radio1.channel ], [ '5745', '149' ], 'guard: on 149, persisted');
 	t.ok(!fs.stat(run + '/chanmgr.pending.radio1'), 'guard: pending marker removed');
 	t.eq(guard.status('radio1').state, 'done', 'guard: status file');
+	let gc = agent.changes()[0];
+	t.eq([ gc.from, gc.to, gc.ok, gc.how ], [ 36, 149, true, 'guarded' ], 'guard: change noted');
 
 	// radio does not come up on the new channel
 	reset('down\n5180 1\n');
 	st = go();
 	t.eq([ st.state, get('freq'), uci.data.wireless.radio1.channel ], [ 'rolled_back', '5180', '36' ], 'guard: radio down -> back on 36');
 	t.ok(index(st.msg, 'did not come up') >= 0, 'guard: reason recorded');
+	t.eq([ agent.changes()[0].ok, agent.changes()[0].to ], [ false, 149 ], 'guard: failed change noted');
 
 	// radio up but mesh peers never return
 	reset('5745 0\n5180 1\n');

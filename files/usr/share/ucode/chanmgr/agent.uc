@@ -14,7 +14,11 @@ let uci = require('uci');
 let chan = require('chanmgr.chan');
 let parse = require('chanmgr.parse');
 
+const RUN_DIR = getenv('CHANMGR_RUN_DIR') ?? '/tmp/chanmgr';
+const CHANGES_MAX = 30;
+
 let conn;
+let pending = {};
 
 function bus() {
 	conn ??= ubus.connect();
@@ -210,6 +214,25 @@ function persist(radio, channel, width) {
 		cur.commit('wireless');
 }
 
+// Channel changes made on this device, newest first (shown on its status
+// page; kept in /tmp, so a reboot clears them).
+function changes() {
+	try {
+		return json(fs.readfile(RUN_DIR + '/changes.json') ?? '[]') ?? [];
+	}
+	catch (e) {
+		return [];
+	}
+}
+
+function note(radio, entry) {
+	let list = changes();
+
+	unshift(list, { ts: time(), radio, ...entry });
+	fs.mkdir(RUN_DIR, 0700);
+	fs.writefile(RUN_DIR + '/changes.json', sprintf('%J', slice(list, 0, CHANGES_MAX)));
+}
+
 // Switch a radio.
 //   args: { radio, channel, width, bcn_count, nowait, reload_fallback, method }
 //   method "csa" (default): channel switch announcement, clients stay connected;
@@ -218,7 +241,7 @@ function persist(radio, channel, width) {
 //   method "reload": write the channel to UCI and restart the radio. Clients
 //     reconnect, but it works for radios that also carry a mesh interface,
 //     where a CSA can leave the radio down.
-function switch_channel(args) {
+function do_switch(args) {
 	let cur = uci.cursor();
 
 	if (cur.get('wireless', args.radio) != 'wifi-device')
@@ -289,6 +312,23 @@ function switch_channel(args) {
 	return { ok: false, errors, freq: s.freq };
 }
 
+function switch_channel(args) {
+	let before = info().radios[args.radio];
+	let res = do_switch(args);
+	let entry = {
+		from: before?.channel, from_width: before?.width, to: +args.channel, width: +(args.width || before?.width || 0),
+		how: (args.method == 'reload' || !before) ? 'restart' : 'csa'
+	};
+
+	// switches announced to a whole group are noted when confirmed
+	if (args.nowait && res.ok)
+		pending[args.radio] = entry;
+	else
+		note(args.radio, { ...entry, ok: res.ok, msg: join('; ', res.errors ?? (res.error ? [ res.error ] : [])) });
+
+	return res;
+}
+
 // Confirm a switch issued with nowait and persist it.
 function confirm(args) {
 	let band = info().radios[args.radio]?.band ?? uci.cursor().get('wireless', args.radio, 'band');
@@ -302,7 +342,10 @@ function confirm(args) {
 	if (ok)
 		persist(args.radio, +args.channel, +(args.width || 0));
 
+	note(args.radio, { ...(pending[args.radio] ?? { to: +args.channel, width: +(args.width || 0) }), ok, how: 'group' });
+	delete pending[args.radio];
+
 	return { ok };
 }
 
-return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, running_on, mesh_peers };
+return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, running_on, mesh_peers, changes, note };

@@ -114,8 +114,8 @@ msgstr "Anúncio de troca de canal (experimental)"
 msgid "Channel width"
 msgstr "Largura de canal"
 
-msgid "Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected."
-msgstr "Os canais 52–144 exigem uma verificação de disponibilidade silenciosa (de 1 a 10 minutos) e precisam ser abandonados quando um radar é detectado."
+msgid "Channels 52–144 are shared with radar. A radio must stay silent for 1 to 10 minutes before using one, and must leave it at once when radar is detected. Not recommended for radios carrying a mesh link: a radar hit moves only the node that detected it and splits the mesh."
+msgstr "Os canais 52–144 são compartilhados com radares. O rádio precisa ficar em silêncio de 1 a 10 minutos antes de usar um deles e sair imediatamente quando detectar radar. Não recomendado para rádios com link mesh: a detecção de radar move só o nó que a detectou e separa o mesh."
 
 msgid "Choose the channel width too"
 msgstr "Escolher também a largura do canal"
@@ -204,6 +204,9 @@ msgstr "Host"
 msgid "Host name"
 msgstr "Nome do host"
 
+msgid "How"
+msgstr "Como"
+
 msgid "How many days of scans an estimate needs before it is considered reliable."
 msgstr "Quantos dias de varreduras uma estimativa precisa para ser considerada confiável."
 
@@ -216,14 +219,14 @@ msgstr "Item"
 msgid "Keep current channels"
 msgstr "Manter canais atuais"
 
+msgid "Last change"
+msgstr "Última troca"
+
 msgid "Last error"
 msgstr "Último erro"
 
 msgid "Last evaluation"
 msgstr "Última avaliação"
-
-msgid "Last switch"
-msgstr "Última troca"
 
 msgid "Last utilization sample"
 msgstr "Última amostra de utilização"
@@ -281,6 +284,9 @@ msgstr "Redes vizinhas (%d)"
 
 msgid "Neighbors"
 msgstr "Vizinhos"
+
+msgid "No changes since the last reboot"
+msgstr "Nenhuma troca desde o último reboot"
 
 msgid "No changes yet"
 msgstr "Nenhuma troca ainda"
@@ -525,6 +531,12 @@ msgstr "falhou"
 msgid "going back"
 msgstr "voltando"
 
+msgid "group switch"
+msgstr "troca em grupo"
+
+msgid "guarded restart"
+msgstr "reinício protegido"
+
 msgid "hidden"
 msgstr "oculta"
 
@@ -552,6 +564,9 @@ msgstr "desligado (ative em Configuração para avaliar automaticamente)"
 msgid "ok"
 msgstr "ok"
 
+msgid "radio restart"
+msgstr "reinício do rádio"
+
 msgid "recommends only"
 msgstr "só recomenda"
 
@@ -560,6 +575,9 @@ msgstr "rodando"
 
 msgid "starting"
 msgstr "iniciando"
+
+msgid "switch announcement"
+msgstr "anúncio de troca"
 
 msgid "switched"
 msgstr "trocado"
@@ -581,3 +599,6 @@ msgstr "esperando o router"
 
 msgid "went back"
 msgstr "voltou ao canal anterior"
+
+msgid "went back or failed"
+msgstr "voltou ou falhou"

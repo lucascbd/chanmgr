@@ -163,7 +163,7 @@ return view.extend({
 		o.placeholder = '86400';
 
 		o = s.taboption('decision', form.Flag, 'allow_dfs', _('Allow DFS channels'),
-			_('Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected.'));
+			_('Channels 52–144 are shared with radar. A radio must stay silent for 1 to 10 minutes before using one, and must leave it at once when radar is detected. Not recommended for radios carrying a mesh link: a radar hit moves only the node that detected it and splits the mesh.'));
 
 		o = s.taboption('decision', form.DynamicList, 'channels_2g', _('2.4 GHz channels'),
 			_('Candidate channels in the 2.4 GHz band. Only non-overlapping channels are recommended.'));

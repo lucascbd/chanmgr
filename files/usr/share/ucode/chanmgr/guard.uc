@@ -57,6 +57,12 @@ function set_state(radio, st, state, msg) {
 
 	fs.writefile(path(radio, '.json.tmp'), sprintf('%J', st));
 	fs.rename(path(radio, '.json.tmp'), path(radio, '.json'));
+
+	if (FINAL[state] && st.to != null)
+		agent.note(radio, {
+			from: st.from, from_width: st.from_width, to: st.to, width: st.width,
+			ok: state == 'done', how: 'guarded', msg: (state == 'done') ? null : st.msg
+		});
 	system([ 'logger', '-t', 'chanmgr', '-p', 'daemon.notice', sprintf('%s: guard %s%s', radio, state, msg ? ': ' + msg : '') ]);
 }
 

@@ -69,7 +69,8 @@ function fmtData(o, days) {
 	if (!o)
 		return '-';
 
-	return (o.days >= days)
+	// same 6 h of grace as the controller
+	return (o.days >= days - 0.25)
 		? _('%d samples, ready').format(o.samples)
 		: _('%d samples, %.1f of %d days').format(o.samples, o.days, days);
 }
@@ -126,19 +127,33 @@ return view.extend({
 
 	renderAp(ap) {
 		const info = ap.info ?? {}, rows = [];
+		const changes = ap.changes ?? [];
+		const how = { csa: _('switch announcement'), restart: _('radio restart'), guarded: _('guarded restart'), group: _('group switch') };
+		const fmtChange = (c) => c ? E([], [
+			'%s → %s%s'.format(c.from ?? '?', c.to, c.width ? ' (%d MHz)'.format(c.width) : ''),
+			E('div', { 'style': 'font-size:90%' }, [
+				fmtTime(c.ts), ' · ', c.ok ? _('ok') : warnText(_('went back or failed')), c.msg ? ' – ' + c.msg : ''
+			])
+		]) : '-';
 
 		for (const radio of Object.keys(info.radios ?? {}).sort()) {
 			const r = info.radios[radio], g = ap.guards?.[radio] ?? {};
+			const busy = g.state && g.state != 'none' && !['done', 'rolled_back', 'failed'].includes(g.state);
 
 			rows.push([
 				radio, BANDS[r.band] ?? r.band, fmtChan(r),
 				(r.ifaces ?? []).map((i) => '%s (%s)'.format(i.ifname, i.mode)).join(', '),
-				E([], [ GUARD[g.state] ?? g.state ?? '-', g.msg ? E('div', { 'style': 'font-size:90%' }, g.msg) : '' ])
+				busy ? E('em', { 'class': 'spinning' }, GUARD[g.state] ?? g.state) : fmtChange(changes.find((c) => c.radio == radio))
 			]);
 		}
 
 		for (const radio of Object.keys(info.down ?? {}).sort())
-			rows.push([ radio, '-', warnText(_('down')), info.down[radio], GUARD[ap.guards?.[radio]?.state] ?? '-' ]);
+			rows.push([ radio, '-', warnText(_('down')), info.down[radio], fmtChange(changes.find((c) => c.radio == radio)) ]);
+
+		const hist = changes.map((c) => [
+			fmtTime(c.ts), c.radio, '%s → %s'.format(c.from ?? '?', c.to), c.width ? '%d MHz'.format(c.width) : '-',
+			how[c.how] ?? c.how ?? '-', c.ok ? _('ok') : warnText(_('failed')), c.msg || ''
+		]);
 
 		return E([], [
 			E('h2', _('Channel Manager')),
@@ -155,7 +170,12 @@ return view.extend({
 			]),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', _('Radios')),
-				table([ _('Radio'), _('Band'), _('Channel'), _('Interfaces'), _('Last switch') ], rows, _('No radios'))
+				table([ _('Radio'), _('Band'), _('Channel'), _('Interfaces'), _('Last change') ], rows, _('No radios'))
+			]),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', _('Channel changes')),
+				table([ _('Time'), _('Radio'), _('Channel'), _('Width'), _('How'), _('Result'), _('Details') ], hist,
+					_('No changes since the last reboot'))
 			])
 		]);
 	},
