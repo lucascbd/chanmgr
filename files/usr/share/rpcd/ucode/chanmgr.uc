@@ -65,7 +65,7 @@ return {
 			args: { radio: '', channel: 0, width: 0, bcn_count: 0, nowait: false, reload_fallback: false, method: '' },
 			call: wrap((a) => agent.switch_channel(a))
 		},
-		agent_confirm: { args: { radio: '', channel: 0, timeout: 0 }, call: wrap((a) => agent.confirm(a)) },
+		agent_confirm: { args: { radio: '', channel: 0, width: 0, timeout: 0 }, call: wrap((a) => agent.confirm(a)) },
 		agent_guard_start: {
 			args: { radio: '', channel: 0, width: 0, delay: 0, up_timeout: 0, mesh_timeout: 0, confirm_timeout: 0, watch: 0, mesh_lost: 0 },
 			call: wrap((a) => guard.start(a))

@@ -53,6 +53,16 @@ function htmode_width(htmode) {
 	return m ? +m[2] : 20;
 }
 
+// The htmode for another width, keeping the PHY family (HE80 -> HE40).
+function htmode_with_width(htmode, width) {
+	let fam = match(htmode ?? '', /^(HT|VHT|HE|EHT)/)?.[1] ?? 'HT';
+
+	if (fam == 'HT' && width > 40)
+		fam = 'VHT';
+
+	return fam + width;
+}
+
 // Feature flags expected by hostapd's switch_chan for the given htmode.
 function htmode_flags(htmode, band) {
 	let fam = match(htmode ?? '', /^(NOHT|HT|VHT|HE|EHT)/)?.[1] ?? 'HT';
@@ -251,7 +261,7 @@ function switch_args(s, htmode, bcn_count) {
 }
 
 return {
-	chan2freq, freq2band, freq2chan, htmode_width, htmode_flags,
+	chan2freq, freq2band, freq2chan, htmode_width, htmode_flags, htmode_with_width,
 	spec, subchannels, span, overlap, key, same,
 	allowed_map, candidates, neighbor_spec, switch_args
 };

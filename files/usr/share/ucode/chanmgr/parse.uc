@@ -137,4 +137,20 @@ function phy_channels(text) {
 	return res;
 }
 
-return { scan, survey, dev_info, phy_channels };
+// "iw dev <if> station dump": receive airtime per client, { mac: microseconds }
+function station_rx(text) {
+	let res = {}, mac = null;
+
+	for (let l in lines(text)) {
+		let m;
+
+		if ((m = match(l, /^Station ([0-9a-f:]{17})/)))
+			mac = m[1];
+		else if (mac && (m = match(l, /^\trx duration:\s+([0-9]+) us/)))
+			res[mac] = +m[1];
+	}
+
+	return res;
+}
+
+return { scan, survey, dev_info, phy_channels, station_rx };

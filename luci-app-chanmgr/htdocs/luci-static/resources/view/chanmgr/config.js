@@ -170,8 +170,8 @@ return view.extend({
 		o.datatype = 'range(1,14)';
 		o.placeholder = '1';
 
-		o = s.taboption('width', form.Flag, 'width_analysis', _('Enable width analysis'),
-			_('Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet.'));
+		o = s.taboption('width', form.Flag, 'width_analysis', _('Choose the channel width too'),
+			_('The 5 GHz plan then picks channel and width together, by how much your devices could transmit, measured on each channel over several days. A width change is only proposed with enough days of data, at least 30% more capacity and three evaluations in a row asking for it; it is applied like any other change, so only in "Apply automatically" mode or with the apply button.'));
 		o.default = o.disabled;
 
 		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),

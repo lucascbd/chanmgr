@@ -99,15 +99,22 @@ function info() {
 	}
 
 	// agent: feature level, lets the controller refuse what an old agent cannot do
-	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 3, radios, down };
+	return { hostname: trim(fs.readfile('/proc/sys/kernel/hostname') ?? ''), agent: 4, radios, down };
 }
 
 // Survey counters of every radio (passive, no off-channel time).
 function survey() {
 	let res = {};
 
-	for (let name, r in info().radios)
-		res[name] = { freq: r.freq, survey: parse.survey(iw('dev ' + shq(r.ifname) + ' survey dump')) };
+	for (let name, r in info().radios) {
+		// receive airtime of our own clients, to tell it apart from neighbors
+		let stations = {};
+
+		for (let i in filter(r.ifaces, (i) => i.mode == 'ap'))
+			stations = { ...stations, ...parse.station_rx(iw('dev ' + shq(i.ifname) + ' station dump')) };
+
+		res[name] = { freq: r.freq, survey: parse.survey(iw('dev ' + shq(r.ifname) + ' survey dump')), stations };
+	}
 
 	return { radios: res };
 }
@@ -153,13 +160,20 @@ function current_freq(ifname) {
 	return parse.dev_info(iw('dev ' + shq(ifname) + ' info')).freq;
 }
 
-// Wait until the radio runs on freq. Returns true on success. The radio may
-// be down for a while (restart), so look it up again on every attempt.
-function verify(radio, freq, timeout) {
+// Does the interface run on freq (and width, when given)?
+function running_on(ifname, freq, width) {
+	let d = parse.dev_info(iw('dev ' + shq(ifname) + ' info'));
+
+	return d.freq == freq && (!width || d.width == width);
+}
+
+// Wait until the radio runs on freq (and width). Returns true on success. The
+// radio may be down for a while (restart), so look it up on every attempt.
+function verify(radio, freq, timeout, width) {
 	for (let t = 0; t < (timeout ?? 15); t++) {
 		let r = info().radios[radio];
 
-		if (r && current_freq(r.ifname) == freq)
+		if (r && running_on(r.ifname, freq, width))
 			return true;
 
 		sleep(1000);
@@ -174,15 +188,26 @@ function restart(radio) {
 	system(sprintf('wifi down %s >/dev/null 2>&1; wifi up %s >/dev/null 2>&1', shq(radio), shq(radio)));
 }
 
-function persist(radio, channel) {
+// Store channel (and width, as htmode) in UCI. Commit only: no "wifi reload",
+// the radio already runs with these settings (or the caller restarts it).
+function persist(radio, channel, width) {
 	let cur = uci.cursor();
+	let changed = false;
 
-	if (cur.get('wireless', radio, 'channel') == '' + channel)
-		return;
+	if (cur.get('wireless', radio, 'channel') != '' + channel) {
+		cur.set('wireless', radio, 'channel', '' + channel);
+		changed = true;
+	}
 
-	// commit only: no "wifi reload", the radio already runs on the new channel
-	cur.set('wireless', radio, 'channel', '' + channel);
-	cur.commit('wireless');
+	let htmode = cur.get('wireless', radio, 'htmode');
+
+	if (width && htmode && chan.htmode_width(htmode) != +width) {
+		cur.set('wireless', radio, 'htmode', chan.htmode_with_width(htmode, +width));
+		changed = true;
+	}
+
+	if (changed)
+		cur.commit('wireless');
 }
 
 // Switch a radio.
@@ -207,13 +232,13 @@ function switch_channel(args) {
 	let errors = [];
 
 	if (args.method == 'reload' || !r) {
-		persist(args.radio, s.channel);
+		persist(args.radio, s.channel, s.width);
 		system('wifi reload >/dev/null 2>&1');
 
 		if (args.nowait)
 			return { ok: true, errors, freq: s.freq };
 
-		let ok = verify(args.radio, s.freq, 45);
+		let ok = verify(args.radio, s.freq, 45, s.width);
 
 		return { ok, errors: ok ? [] : [ 'radio not on the new channel after restart' ], freq: s.freq };
 	}
@@ -240,18 +265,18 @@ function switch_channel(args) {
 	if (args.nowait)
 		return { ok: !length(errors), errors, freq: s.freq };
 
-	let ok = verify(args.radio, s.freq, int(bcn * 0.1024) + 10);
+	let ok = verify(args.radio, s.freq, int(bcn * 0.1024) + 10, s.width);
 
 	if (ok) {
-		persist(args.radio, s.channel);
+		persist(args.radio, s.channel, s.width);
 
 		return { ok, errors, freq: s.freq };
 	}
 
 	if (args.reload_fallback) {
-		persist(args.radio, s.channel);
+		persist(args.radio, s.channel, s.width);
 		system('wifi reload >/dev/null 2>&1');
-		ok = verify(args.radio, s.freq, 90);
+		ok = verify(args.radio, s.freq, 90, s.width);
 		push(errors, 'CSA failed, used wifi reload fallback');
 
 		return { ok, errors, freq: s.freq };
@@ -272,12 +297,12 @@ function confirm(args) {
 		return { ok: false, error: 'unknown radio: ' + args.radio };
 
 	let freq = chan.chan2freq(band, +args.channel);
-	let ok = verify(args.radio, freq, +(args.timeout || 15));
+	let ok = verify(args.radio, freq, +(args.timeout || 15), +(args.width || 0));
 
 	if (ok)
-		persist(args.radio, +args.channel);
+		persist(args.radio, +args.channel, +(args.width || 0));
 
 	return { ok };
 }
 
-return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, mesh_peers };
+return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, running_on, mesh_peers };

@@ -280,14 +280,25 @@ function sample_into(st, cfg) {
 			if (u.last) {
 				let da = e.active - u.last.active, db = busy - u.last.busy;
 
+				// receive airtime of our own clients (per station, in us) is
+				// our traffic too, not congestion caused by neighbors
+				let own = 0;
+
+				for (let mac, us in d.stations ?? {}) {
+					let prev = u.last.stations?.[mac];
+
+					if (prev != null && us >= prev)
+						own += (us - prev) / 1000.0;
+				}
+
 				// counters reset (interface restart) produce negative deltas
 				if (da > 0 && db >= 0 && db <= da) {
 					u.acc_active += da;
-					u.acc_busy += db;
+					u.acc_busy += max(0, db - own);
 				}
 			}
 
-			u.last = { active: e.active, busy };
+			u.last = { active: e.active, busy, stations: d.stations ?? {} };
 			u.value = (u.acc_active > 0) ? 1.0 * u.acc_busy / u.acc_active : null;
 		}
 	}
@@ -457,11 +468,17 @@ function build_model(cfg, st, scans) {
 // Keep one busy-fraction sample per 20 MHz channel and evaluation, from the
 // survey counters reported after a scan. Counters may be cumulative (then
 // the difference to the previous evaluation is used) or reset per scan.
-function record_chanstats(st, rid, survey, days, now) {
+// The channel in use is recorded from the long-term samples (current: { freq,
+// value }), which exclude our own clients' traffic; its survey entry from
+// the scan would count that traffic as congestion.
+function record_chanstats(st, rid, survey, days, now, current) {
 	let h = st.chanstats[rid] ??= {};
 
+	if (current?.value != null)
+		push((h['' + current.freq] ??= { samples: [] }).samples, [ now, current.value ]);
+
 	for (let e in survey ?? []) {
-		if (e.active == null || e.busy == null)
+		if (e.active == null || e.busy == null || e.in_use || e.freq == current?.freq)
 			continue;
 
 		let c = h['' + e.freq] ??= { samples: [] };
@@ -512,106 +529,97 @@ function chanstats_summary(h, days, now) {
 	return { util, count, first };
 }
 
-// Analysis only: estimated capacity of every channel option per width,
-// for each 5 GHz radio and for each unit (members of a group summed).
-function width_analysis(cfg, st, model, band, now) {
-	if (band != '5g')
-		return;
+// Inputs of the capacity planner for one band (channel and width chosen
+// together, see score.plan_capacity): per radio the estimated busy fraction
+// of every 20 MHz channel, per unit the options of every width in widths_5g
+// (and the current one) that all members can use.
+function capacity_model(cfg, st, model, band, now) {
+	let radios = {}, sums = {}, options = {};
 
-	let per_radio = {};
+	for (let rid, r in model.radios) {
+		if (r.band != band || !r.scanned)
+			continue;
 
-	for (let u in model.bands[band].units) {
-		for (let rid in u.radios) {
-			let r = model.radios[rid], nr = split(rid, '/');
-			let ni = st.nodes[nr[0]]?.radios?.[nr[1]];
+		let nr = split(rid, '/');
+		let allowed = chan.allowed_map(st.nodes[nr[0]]?.radios?.[nr[1]]?.channels ?? [], band);
+		let sum = chanstats_summary(st.chanstats[rid], cfg.history_days, now);
+		let measured = {};
 
-			if (!r || !ni)
-				continue;
+		for (let f, m in sum.util)
+			measured[f] = { mean: m, n: sum.count[f] };
 
-			let sum = chanstats_summary(st.chanstats[rid], cfg.history_days, now);
-			let allowed = chan.allowed_map(ni.channels, band);
-			let vht = chan.htmode_flags(r.htmode, band).vht;
-			let widths = uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ]);
-			let opts = {};
+		let channels = uniq([ ...map(keys(allowed), (k) => +k), ...chan.subchannels(r.current) ]);
+		let vht = chan.htmode_flags(r.htmode, band).vht;
+		let widths = uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ]);
+		let opts = [];
 
-			let add = (s) => {
-				let subs = chan.subchannels(s);
-				let n = min(...map(subs, (c) => sum.count['' + chan.chan2freq(band, c)] ?? 0));
-				let oldest = min(...map(subs, (c) => sum.first['' + chan.chan2freq(band, c)] ?? now));
+		for (let w in widths)
+			push(opts, ...chan.candidates(band, w, allowed, cfg, r.current.channel));
 
-				opts[chan.key(s)] = {
-					channel: s.channel, width: s.width,
-					capacity: score.capacity(s, sum.util),
-					samples: n, days: (now - oldest) / 86400.0,
-					current: chan.same(s, r.current)
-				};
-			};
-
-			for (let w in widths)
-				for (let s in chan.candidates(band, w, allowed, cfg, r.current.channel))
-					add(s);
-
-			add(r.current);
-			per_radio[rid] = opts;
-
-			if (st.radios[rid])
-				st.radios[rid].widths = slice(sort(values(opts), (a, b) => (b.capacity ?? -1) - (a.capacity ?? -1)), 0, 10);
-		}
+		radios[rid] = { busy: score.busy_estimate(band, channels, r.neighbors, measured, cfg) };
+		sums[rid] = sum;
+		options[rid] = opts;
 	}
 
-	// per unit: a group must use one option on all members, so add them up
 	let units = [];
 
 	for (let u in model.bands[band].units) {
-		let members = filter(u.radios, (rid) => per_radio[rid]);
+		let members = filter(u.radios, (rid) => radios[rid]);
 
 		if (!length(members))
 			continue;
 
-		let comb = {};
+		let cands = options[members[0]];
 
-		for (let k, o in per_radio[members[0]]) {
-			let all = map(members, (rid) => per_radio[rid][k]);
+		for (let rid in slice(members, 1)) {
+			let ok = {};
 
-			if (length(filter(all, (x) => x?.capacity != null)) != length(members))
-				continue;
+			for (let o in options[rid])
+				ok[chan.key(o)] = true;
 
-			comb[k] = {
-				channel: o.channel, width: o.width, current: o.current,
-				capacity: 0, samples: min(...map(all, (x) => x.samples)), days: min(...map(all, (x) => x.days))
-			};
-
-			for (let x in all)
-				comb[k].capacity += x.capacity;
+			cands = filter(cands, (o) => ok[chan.key(o)]);
 		}
 
-		let ranked = sort(values(comb), (a, b) => b.capacity - a.capacity);
-		let cur = filter(ranked, (x) => x.current)[0];
-		let best = ranked[0];
-
-		push(units, {
-			id: u.id, radios: u.radios,
-			current: cur, best,
-			gain: (cur?.capacity > 0 && best) ? best.capacity / cur.capacity - 1 : null,
-			ready: !!best && best.days >= cfg.history_days && (!cur || cur.days >= cfg.history_days),
-			history_days: cfg.history_days
-		});
+		push(units, { ...u, candidates: cands });
 	}
 
-	st.plans[band].widths = units;
+	// samples and days of data behind an option on one radio
+	let data = (rid, s) => {
+		let subs = chan.subchannels(s), sum = sums[rid];
+		let n = min(...map(subs, (c) => sum?.count['' + chan.chan2freq(band, c)] ?? 0));
+		let oldest = min(...map(subs, (c) => sum?.first['' + chan.chan2freq(band, c)] ?? now));
+
+		return { samples: n, days: (now - oldest) / 86400.0 };
+	};
+
+	let ready = (best) => {
+		let res = {};
+
+		for (let u in units)
+			res[u.id] = !!best[u.id] && length(filter(u.radios, (rid) =>
+				radios[rid] && data(rid, best[u.id]).days < cfg.history_days)) == 0;
+
+		return res;
+	};
+
+	return { units, radios, data, ready };
 }
 
 function spec_json(s) {
 	return s ? { channel: s.channel, width: s.width } : null;
 }
 
-function record(st, model, band, p, d) {
-	let b = model.bands[band];
+function record(st, model, band, p, d, units, cm) {
+	let b = { units: units ?? model.bands[band].units };
 
 	st.plans[band] = {
 		ts: time(),
+		metric: p.metric ?? 'cost',
 		current_cost: p.current_cost,
 		best_cost: p.best_cost,
+		current_value: p.current_value,
+		best_value: p.best_value,
+		ready: p.ready,
 		gain: d.gain, rel: d.rel,
 		action: d.action, reason: d.reason,
 		key: d.key, streak: d.streak,
@@ -631,7 +639,10 @@ function record(st, model, band, p, d) {
 				node: r.node, radio: r.radio, band, unit: u.id, locked: u.locked,
 				channel: r.current.channel, width: r.current.width,
 				util: r.util['' + r.current.freq],
-				costs: slice(p.table[rid], 0, 8),
+				costs: cm ? null : slice(p.table[rid], 0, 8),
+				options: cm ? map(slice(p.table[rid], 0, 10), (o) => ({
+					...o, ...cm.data(rid, chan.spec(band, o.channel, o.width))
+				})) : null,
 				neighbors: slice(sort(map(r.neighbors, (n) => ({
 					bssid: n.bssid, ssid: n.ssid, signal: n.signal,
 					channel: n.spec.channel, width: n.spec.width
@@ -650,9 +661,12 @@ function node_call(handles, rid, method, args, timeout) {
 }
 
 // How to switch a radio, or an error when its agent is too old for that.
-function switch_method(cfg, st, rid) {
+function switch_method(cfg, st, rid, to) {
 	let nr = split(rid, '/');
 	let n = st.nodes?.[nr[0]];
+
+	if (to && n?.radios?.[nr[1]]?.width != null && to.width != n.radios[nr[1]].width && (n.agent ?? 1) < 4)
+		return { error: 'update chanmgr on ' + nr[0] + ': its agent cannot change the channel width' };
 
 	if (!n?.radios?.[nr[1]]?.has_mesh || cfg.mesh_method == 'csa')
 		return { method: 'csa' };
@@ -664,7 +678,7 @@ function switch_method(cfg, st, rid) {
 }
 
 function switch_one(cfg, st, handles, rid, from, to) {
-	let m = switch_method(cfg, st, rid);
+	let m = switch_method(cfg, st, rid, to);
 
 	if (m.method == 'guard')
 		return switch_guarded(cfg, st, handles, rid, [ rid ], from, to);
@@ -776,7 +790,7 @@ function switch_guarded(cfg, st, handles, id, rids, from, to) {
 // announce the switch on all of them, confirm each, and if any of them did not
 // make it, move all of them back to the old channel.
 function switch_group(cfg, st, handles, u) {
-	let methods = map(u.radios, (rid) => switch_method(cfg, st, rid));
+	let methods = map(u.radios, (rid) => switch_method(cfg, st, rid, u.best));
 	let err = filter(methods, (m) => m.error)[0]?.error;
 
 	if (err) {
@@ -808,7 +822,7 @@ function switch_group(cfg, st, handles, u) {
 		let results = {};
 
 		for (let rid in u.radios) {
-			results[rid] = node_call(handles, rid, 'confirm', { channel: to.channel, timeout: 45 }, 90).ok;
+			results[rid] = node_call(handles, rid, 'confirm', { channel: to.channel, width: to.width, timeout: 45 }, 90).ok;
 			ok = ok && results[rid];
 		}
 
@@ -922,8 +936,12 @@ function evaluate(opts) {
 					log('warn', '%s/%s: scan failed: %s', node.name, radio, res.error);
 				else {
 					scans[node.name + '/' + radio] = res.data;
-					if (cfg.width_analysis)
-						record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now);
+					if (cfg.width_analysis) {
+						let u = st.util[node.name + '/' + radio];
+
+						record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now,
+							(u?.value != null && u.freq == r.freq) ? { freq: u.freq, value: u.value } : null);
+					}
 				}
 			}
 		}
@@ -936,13 +954,29 @@ function evaluate(opts) {
 		st.radios = {};
 
 		for (let band, b in model.bands) {
-			let p = score.plan(b.units, model.radios, model.pairs, cfg);
-			let d = score.decide(b.units, p, st.plans[band], st.last_switch, cfg, now);
+			let units = b.units, p, cm = null;
 
-			record(st, model, band, p, d);
-			if (cfg.width_analysis)
-				width_analysis(cfg, st, model, band, now);
-			log('info', '%s: cost %.2f -> %.2f, %s (%s)', band, p.current_cost, p.best_cost, d.action, d.reason);
+			// width analysis on: channel and width chosen together by capacity
+			if (cfg.width_analysis && band == '5g') {
+				cm = capacity_model(cfg, st, model, band, now);
+				units = cm.units;
+				p = score.plan_capacity(units, cm.radios, model.pairs, cfg);
+				p.ready = cm.ready(p.best);
+			}
+			else
+				p = score.plan(units, model.radios, model.pairs, cfg);
+
+			let d = score.decide(units, p, st.plans[band], st.last_switch, cfg, now);
+
+			record(st, model, band, p, d, units, cm);
+
+			if (cm)
+				st.plans[band].history_days = cfg.history_days;
+
+			if (cm)
+				log('info', '%s: capacity %.2f -> %.2f, %s (%s)', band, p.current_value, p.best_value, d.action, d.reason);
+			else
+				log('info', '%s: cost %.2f -> %.2f, %s (%s)', band, p.current_cost, p.best_cost, d.action, d.reason);
 
 			let do_apply = (opts?.apply != null) ? opts.apply : (cfg.mode == 'apply');
 
@@ -1125,4 +1159,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into };

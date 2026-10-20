@@ -67,4 +67,16 @@ return function(t) {
 
 	r = ctl.evaluate();
 	t.eq([ r.plans['5g'].action, agent.dev.radios.radio1.channel ], [ 'applied', 36 ], 'apply mode: switches back when confirmed');
+
+	// our own clients' receive airtime is not counted as congestion
+	let survey = (active, busy, rx_us) => ({ data: { radios: { radio1: {
+		freq: 5745, survey: [ { freq: 5745, in_use: true, active, busy, tx: 0 } ], stations: { 'aa:bb:cc:dd:ee:01': rx_us }
+	} } } });
+	let replies = [ survey(1000, 100, 0), survey(2000, 600, 300000) ];
+	let st2 = { util: {} };
+
+	for (let i = 0; i < 2; i++)
+		ctl.sample_into(st2, { nodes: [ { name: 'x', h: { call: () => replies[i] } } ] });
+
+	t.near(st2.util['x/radio1'].value, (500 - 300) / 1000.0, 'sampling: own clients rx excluded');
 };

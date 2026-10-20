@@ -77,4 +77,12 @@ return function(t) {
 	reset('down');
 	let inf = agent.info();
 	t.eq([ inf.radios.radio1, inf.down.radio1 ], [ null, 'radio is down' ], 'agent: down radio reported');
+
+	// width changes are stored as htmode, keeping the PHY family
+	uci.data.wireless.radio1.htmode = 'HE40';
+	agent.persist('radio1', 149, 80);
+	t.eq([ uci.data.wireless.radio1.channel, uci.data.wireless.radio1.htmode ], [ '149', 'HE80' ], 'agent: width persisted as htmode');
+	agent.persist('radio1', 149, 80);
+	t.eq(uci.data.wireless.radio1.htmode, 'HE80', 'agent: unchanged width left alone');
+	uci.data.wireless.radio1.htmode = 'HE20';
 };

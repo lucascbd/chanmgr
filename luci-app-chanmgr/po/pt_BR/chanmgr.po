@@ -48,9 +48,6 @@ msgstr "Avançado"
 msgid "Allow DFS channels"
 msgstr "Permitir canais DFS"
 
-msgid "Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet."
-msgstr "Por enquanto só análise: a página de status estima, para cada canal e largura de 5 GHz, quanto os seus aparelhos conseguiriam transmitir, com medidas acumuladas ao longo de vários dias. A largura dos canais ainda nunca é alterada."
-
 msgid "Applied"
 msgstr "Aplicado"
 
@@ -81,8 +78,8 @@ msgstr "Beacons que anunciam a troca de canal antes que ela aconteça."
 msgid "Best channels"
 msgstr "Melhores canais"
 
-msgid "Best option"
-msgstr "Melhor opção"
+msgid "Busy"
+msgstr "Ocupado"
 
 msgid "CSA beacon count"
 msgstr "Contagem de beacons do CSA"
@@ -93,8 +90,8 @@ msgstr "Canais candidatos na faixa de 2,4 GHz. Recomenda-se usar só canais sem 
 msgid "Capacity"
 msgstr "Capacidade"
 
-msgid "Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. Nothing is changed; widths are only analysed until enough days of measurements are collected."
-msgstr "Capacidade: quanto os aparelhos conseguiriam transmitir, onde 1,00 é um canal de 20 MHz totalmente livre e um canal de 80 MHz livre vale 4,00. Nada é alterado; as larguras só são analisadas até juntar dias suficientes de medidas."
+msgid "Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. It comes from the busy time measured on each channel over the last days; while there are few measurements, the neighbors heard on the channel stand in for them."
+msgstr "Capacidade: quanto os aparelhos conseguiriam transmitir, onde 1,00 é um canal de 20 MHz totalmente livre e um canal de 80 MHz livre vale 4,00. Ela vem do tempo de ocupação medido em cada canal nos últimos dias; enquanto há poucas medidas, os vizinhos escutados no canal fazem esse papel."
 
 msgid "Change recommended"
 msgstr "Troca recomendada"
@@ -117,14 +114,11 @@ msgstr "Anúncio de troca de canal (experimental)"
 msgid "Channel width"
 msgstr "Largura de canal"
 
-msgid "Channel width (analysis only)"
-msgstr "Largura de canal (só análise)"
-
-msgid "Channel width estimate"
-msgstr "Estimativa por largura de canal"
-
 msgid "Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected."
 msgstr "Os canais 52–144 exigem uma verificação de disponibilidade silenciosa (de 1 a 10 minutos) e precisam ser abandonados quando um radar é detectado."
+
+msgid "Choose the channel width too"
+msgstr "Escolher também a largura do canal"
 
 msgid "Configuration"
 msgstr "Configuração"
@@ -143,9 +137,6 @@ msgstr "Custo somado por um canal totalmente ocupado, em comparação com um viz
 
 msgid "Could not save the login: %s"
 msgstr "Não foi possível salvar o login: %s"
-
-msgid "Current"
-msgstr "Atual"
 
 msgid "Current channel"
 msgstr "Canal atual"
@@ -197,9 +188,6 @@ msgstr "Falhou"
 
 msgid "Falls back to \"wifi reload\", which disconnects all clients of the node."
 msgstr "Recorre a \"wifi reload\", que desconecta todos os clientes do nó."
-
-msgid "Gain"
-msgstr "Ganho"
 
 msgid "General"
 msgstr "Geral"
@@ -299,9 +287,6 @@ msgstr "Nenhuma troca ainda"
 
 msgid "No data"
 msgstr "Sem dados"
-
-msgid "No data yet"
-msgstr "Ainda sem dados"
 
 msgid "No evaluation yet. Press \"Evaluate now\" or wait for the next scheduled run."
 msgstr "Nenhuma avaliação ainda. Clique em \"Avaliar agora\" ou aguarde a próxima execução agendada."
@@ -468,6 +453,9 @@ msgstr "Trocando"
 msgid "Switching radios with mesh"
 msgstr "Troca em rádios com mesh"
 
+msgid "The 5 GHz plan then picks channel and width together, by how much your devices could transmit, measured on each channel over several days. A width change is only proposed with enough days of data, at least 30% more capacity and three evaluations in a row asking for it; it is applied like any other change, so only in \"Apply automatically\" mode or with the apply button."
+msgstr "O plano de 5 GHz passa a escolher canal e largura juntos, pelo quanto os seus aparelhos conseguiriam transmitir, medido em cada canal ao longo de vários dias. Uma troca de largura só é proposta com dias suficientes de dados, pelo menos 30% a mais de capacidade e três avaliações seguidas pedindo; ela é aplicada como qualquer outra troca, ou seja, só no modo \"Aplicar automaticamente\" ou pelo botão de aplicar."
+
 msgid "The width configured on the radio is always included."
 msgstr "A largura configurada no rádio é sempre incluída."
 
@@ -479,6 +467,9 @@ msgstr "Horário"
 
 msgid "Timeout (s)"
 msgstr "Tempo limite (s)"
+
+msgid "Total capacity: current %s, best %s (gain %s). Channel and width chosen together. Evaluated %s."
+msgstr "Capacidade total: atual %s, melhor %s (ganho %s). Canal e largura escolhidos juntos. Avaliado em %s."
 
 msgid "Total cost: current %s, best %s (gain %s / %s). Evaluated %s."
 msgstr "Custo total: atual %s, melhor %s (ganho %s / %s). Avaliado em %s."
@@ -582,9 +573,6 @@ msgstr "este dispositivo"
 msgid "utilization %s"
 msgstr "utilização %s"
 
-msgid "vs current"
-msgstr "vs atual"
-
 msgid "waiting for the mesh"
 msgstr "esperando o mesh"
 
@@ -593,6 +581,3 @@ msgstr "esperando o router"
 
 msgid "went back"
 msgstr "voltou ao canal anterior"
-
-msgid "Enable width analysis"
-msgstr "Ativar análise de largura"

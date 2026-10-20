@@ -36,4 +36,7 @@ return function(t) {
 	t.eq(length(phy), 18, 'phy: 18 channels');
 	t.eq(phy[4], { freq: 5260, channel: 52, disabled: false, no_ir: true, radar: true }, 'phy: radar channel');
 	t.eq(phy[17].disabled, true, 'phy: disabled channel');
+
+	let sta = parse.station_rx('Station aa:bb:cc:dd:ee:01 (on phy1-ap0)\n\tinactive time:\t10 ms\n\trx duration:\t123456 us\n\ttx duration:\t50 us\nStation aa:bb:cc:dd:ee:02 (on phy1-ap0)\n\trx duration:\t7 us\n');
+	t.eq(sta, { 'aa:bb:cc:dd:ee:01': 123456, 'aa:bb:cc:dd:ee:02': 7 }, 'station rx airtime');
 };

@@ -86,8 +86,8 @@ function opt(args, key, def) {
 	return (v == null || v === '') ? def : +v;
 }
 
-function apply_channel(radio, channel) {
-	agent.persist(radio, channel);
+function apply_channel(radio, channel, width) {
+	agent.persist(radio, channel, width);
 	system('wifi reload >/dev/null 2>&1');
 }
 
@@ -113,19 +113,20 @@ function run(args) {
 	let mesh_ifs = map(filter(r.ifaces, (i) => i.mode == 'mesh'), (i) => i.ifname);
 
 	st.from = r.channel;
+	st.from_width = r.width;
 	st.to = to.channel;
 	st.width = to.width;
 	st.peers_before = agent.mesh_peers(mesh_ifs);
 
-	let on = (freq) => () => agent.current_freq(r.ifname) == freq;
+	let on = (freq, width) => () => agent.running_on(r.ifname, freq, width);
 	let peers = () => agent.mesh_peers(mesh_ifs) > 0;
 
 	let rollback = (why) => {
 		set_state(radio, st, 'rolling_back', why);
 		fs.unlink(path(radio, '.abort'));
-		apply_channel(radio, st.from);
+		apply_channel(radio, st.from, st.from_width);
 
-		let back = wait_for(radio, on(r.freq), up_timeout) == 'ok';
+		let back = wait_for(radio, on(r.freq, st.from_width), up_timeout) == 'ok';
 
 		fs.unlink(pending_path(radio));
 		set_state(radio, st, back ? 'rolled_back' : 'failed',
@@ -135,14 +136,14 @@ function run(args) {
 	};
 
 	// reboot safety: the init script restores this channel if we never finish
-	fs.writefile(pending_path(radio), sprintf('%J', { radio, channel: st.from }));
+	fs.writefile(pending_path(radio), sprintf('%J', { radio, channel: st.from, width: st.from_width }));
 	set_state(radio, st, 'switching');
 
 	// let the reply to the controller leave before the link goes away
 	sleep(opt(args, 'delay', 5) * 1000);
-	apply_channel(radio, to.channel);
+	apply_channel(radio, to.channel, to.width);
 
-	let w = wait_for(radio, on(to.freq), up_timeout);
+	let w = wait_for(radio, on(to.freq, to.width), up_timeout);
 
 	if (w != 'ok')
 		return rollback((w == 'abort') ? 'aborted by the controller' : 'radio did not come up on channel ' + to.channel);
@@ -177,7 +178,7 @@ function run(args) {
 			else if (lost == null)
 				lost = time();
 			else if (time() - lost >= mesh_lost) {
-				fs.writefile(pending_path(radio), sprintf('%J', { radio, channel: st.from }));
+				fs.writefile(pending_path(radio), sprintf('%J', { radio, channel: st.from, width: st.from_width }));
 
 				return rollback('mesh lost after the switch');
 			}
@@ -235,7 +236,7 @@ function recover() {
 		let p = read_json(f);
 
 		if (p?.radio && p.channel) {
-			agent.persist(p.radio, p.channel);
+			agent.persist(p.radio, p.channel, p.width);
 			push(res, p);
 			system([ 'logger', '-t', 'chanmgr', '-p', 'daemon.warn', sprintf('%s: restoring channel %d after an unfinished switch', p.radio, p.channel) ]);
 		}

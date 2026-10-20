@@ -131,4 +131,14 @@ return function(t) {
 	st = mesh(2);
 	t.ok(!ctl.switch_group(gcfg, st, g.handles, u), 'guarded: old agent refused');
 	t.eq(g.calls, [], 'guarded: old agent untouched');
+
+	// a width change needs agent level 4
+	g = guarded({});
+	st = { history: [], nodes: {
+		a: { agent: 3, radios: { radio1: { has_mesh: true, width: 40 } } },
+		b: { agent: 3, radios: { radio1: { has_mesh: true, width: 40 } } }
+	} };
+	t.ok(!ctl.switch_group(gcfg, st, g.handles, { ...u, best: { channel: 149, width: 80 } }), 'width change: old agent refused');
+	t.ok(index(st.history[0].msg, 'cannot change the channel width') > 0, 'width change: says why');
+	t.eq(g.calls, [], 'width change: old agent untouched');
 };
