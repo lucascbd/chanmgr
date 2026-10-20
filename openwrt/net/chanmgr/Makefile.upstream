@@ -1,9 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-only
+# Copy of chanmgr/Makefile for the openwrt/packages feed: there the source
+# comes from a tagged release of this repository. Rename to "Makefile" in
+# net/chanmgr/ of openwrt/packages and set PKG_HASH for the release tarball.
+# (Named Makefile.upstream here so this feed does not list chanmgr twice.)
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=chanmgr
-PKG_VERSION:=0.1.0
+PKG_VERSION:=0.2.0
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz

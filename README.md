@@ -38,7 +38,8 @@ several access points.
 | `files/usr/share/ucode/chanmgr/remote.uc` | ubus-over-HTTP client for remote agents |
 | `files/usr/share/ucode/chanmgr/controller.uc` | orchestration, state, scheduler |
 | `luci-app-chanmgr/` | LuCI app, laid out as `applications/luci-app-chanmgr` in `openwrt/luci` |
-| `openwrt/net/chanmgr/Makefile` | package Makefile for the `openwrt/packages` feed |
+| `chanmgr/Makefile` | package built from this repository (feed use) |
+| `openwrt/net/chanmgr/Makefile.upstream` | package Makefile for the `openwrt/packages` feed |
 | `tests/` | unit and end-to-end tests (host ucode, stubs for ubus/uci/agent) |
 | `scripts/deploy.sh` | copy everything to a device for testing |
 
@@ -236,19 +237,40 @@ cmake --build ucode/build
 UCODE=ucode/build/ucode UCODE_LIB=ucode/build ./tests/run.sh
 ```
 
+## Build into your firmware
+
+This repository is an OpenWrt feed (`chanmgr/` and `luci-app-chanmgr/`). In
+your build tree:
+
+```sh
+echo 'src-git chanmgr https://github.com/lucascbd/luci-app-chanmgr.git' >> feeds.conf.default
+./scripts/feeds update -a
+./scripts/feeds install -a
+./scripts/feeds install chanmgr luci-app-chanmgr
+make menuconfig
+```
+
+Select *LuCI → 3. Applications → luci-app-chanmgr* (it pulls `chanmgr`,
+found under *Network → WirelessAPD*). The Brazilian Portuguese translation
+`luci-i18n-chanmgr-pt-br` is selected with *LuCI → 2. Modules → Translations
+→ Portuguese (Brazil)*. Append `;<branch>` or `^<commit>` to the feed line to
+pin a version. Both packages are architecture independent, so the same build
+serves every device (router and access points).
+
+To try changes without rebuilding the firmware, `scripts/deploy.sh` copies the
+files to a running device.
+
 ## Upstream submission
 
-1. Tag a release (`v0.1.0`), set `PKG_HASH` in `openwrt/net/chanmgr/Makefile`
-   (`sha256sum` of the codeload tarball) and replace `PKG_MAINTAINER` with your
-   full name.
-2. PR to `openwrt/packages`: copy `openwrt/net/chanmgr/` to `net/chanmgr/`.
+1. Tag a release (`v0.2.0`). In `openwrt/net/chanmgr/Makefile.upstream`, set
+   `PKG_HASH` (`sha256sum` of the codeload tarball) and your full name in
+   `PKG_MAINTAINER`.
+2. PR to `openwrt/packages`: copy it to `net/chanmgr/Makefile`.
    Commit `chanmgr: add new package`, `Signed-off-by:` with your real name, and
    list compile- and run-tested targets in the PR.
 3. After it is merged, PR to `openwrt/luci`: copy `luci-app-chanmgr/` to
-   `applications/luci-app-chanmgr/`. Commit `luci-app-chanmgr: add new application`.
-
-To build from a local checkout in the SDK:
-`make package/chanmgr/compile USE_SOURCE_DIR=/path/to/this/repo`.
+   `applications/luci-app-chanmgr/` (its Makefile then uses `../../luci.mk`).
+   Commit `luci-app-chanmgr: add new application`.
 
 ## License
 
