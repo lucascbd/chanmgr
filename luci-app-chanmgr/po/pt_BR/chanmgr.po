@@ -593,3 +593,6 @@ msgstr "esperando o router"
 
 msgid "went back"
 msgstr "voltou ao canal anterior"
+
+msgid "Enable width analysis"
+msgstr "Ativar análise de largura"

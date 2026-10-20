@@ -30,8 +30,9 @@ config chanmgr 'main'
 	list channels_2g '1'
 	list channels_2g '6'
 	list channels_2g '11'
-	# channel width analysis (5 GHz, analysis only): widths to compare and
-	# days of scan data before an estimate counts as reliable
+	# channel width analysis (5 GHz, analysis only, off by default): widths
+	# to compare and days of scan data before an estimate counts as reliable
+	option width_analysis '0'
 	list widths_5g '40'
 	list widths_5g '80'
 	option history_days '3'

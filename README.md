@@ -78,7 +78,8 @@ mean of one survey sample per evaluation over the last `history_days` (3), so
 a channel seen busy during one short scan does not decide alone. The status
 page shows, per 5 GHz radio and group, the capacity of each option for the
 widths in `widths_5g` (40 and 80), the gain against the current one and how
-many days of data back it. Widths are never changed yet.
+many days of data back it. Off by default (`width_analysis`); widths are never
+changed yet.
 
 Radios that must share a channel (802.11s mesh, batman-adv fallback links) go
 into a **group**, and the group is planned and switched as a single unit. A radio
@@ -182,6 +183,7 @@ chanmgr agent info | survey | scan <radio>
 | `min_switch_interval` | `86400` | seconds before a radio may move again |
 | `allow_dfs` | `0` | consider channels 52–144 |
 | `channels_2g` | `1 6 11` | 2.4 GHz candidates |
+| `width_analysis` | `0` | collect data and show the 5 GHz width analysis |
 | `widths_5g` | `40 80` | 5 GHz widths compared in the width analysis |
 | `history_days` | `3` | days of scan data before a width estimate is reliable |
 | `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |

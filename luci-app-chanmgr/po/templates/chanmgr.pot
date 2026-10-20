@@ -810,3 +810,7 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/status.js:53
 msgid "went back"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Enable width analysis"
+msgstr ""

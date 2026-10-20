@@ -170,8 +170,9 @@ return view.extend({
 		o.datatype = 'range(1,14)';
 		o.placeholder = '1';
 
-		o = s.taboption('width', form.DummyValue, '_width_note', ' ');
-		o.cfgvalue = () => _('Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet.');
+		o = s.taboption('width', form.Flag, 'width_analysis', _('Enable width analysis'),
+			_('Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet.'));
+		o.default = o.disabled;
 
 		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),
 			_('The width configured on the radio is always included.'));
@@ -180,11 +181,13 @@ return view.extend({
 		o.value('80', '80 MHz');
 		o.value('160', '160 MHz');
 		o.default = '40 80';
+		o.depends('width_analysis', '1');
 
 		o = s.taboption('width', form.Value, 'history_days', _('Days of measurements'),
 			_('How many days of scans an estimate needs before it is considered reliable.'));
 		o.datatype = 'range(1,30)';
 		o.placeholder = '3';
+		o.depends('width_analysis', '1');
 
 		o = s.taboption('advanced', form.Value, 'util_weight', _('Utilization weight'),
 			_('Cost added by a fully busy channel, compared to a neighbor received at the reference level.'));

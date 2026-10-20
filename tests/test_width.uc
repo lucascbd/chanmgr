@@ -52,7 +52,7 @@ return function(t) {
 
 	// end to end: an evaluation stores the width analysis (analysis only)
 	uci.data.chanmgr = {
-		main: { '.type': 'chanmgr', mode: 'apply', scan_gap: '0', apply_gap: '0', history_days: '3' },
+		main: { '.type': 'chanmgr', mode: 'apply', scan_gap: '0', apply_gap: '0', history_days: '3', width_analysis: '1' },
 		local: { '.type': 'node' }
 	};
 	require('fs').unlink(getenv('CHANMGR_RUN_DIR') + '/state.json');
@@ -80,6 +80,13 @@ return function(t) {
 	t.eq(u.ready, false, 'width analysis: not ready before 3 days of data');
 	t.eq(length(filter(slice(agent.calls, calls), (c) => index(c, 'switch') == 0)), 0, 'width analysis: nothing switched');
 	t.eq(s.chanstats, null, 'status: raw history not sent to LuCI');
+
+	// off (the default): no history kept, no analysis shown
+	delete uci.data.chanmgr.main.width_analysis;
+	ctl.evaluate({ apply: false });
+	s = ctl.status();
+	t.eq([ s.radios['local/radio1'].widths, s.plans['5g'].widths ], [ null, null ], 'width analysis off: nothing computed');
+	t.eq(length(keys(json(require('fs').readfile(getenv('CHANMGR_RUN_DIR') + '/state.json')).chanstats)), 0, 'width analysis off: history cleared');
 
 	agent.dev.survey = null;
 };

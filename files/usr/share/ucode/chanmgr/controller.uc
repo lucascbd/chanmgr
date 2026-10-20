@@ -65,7 +65,9 @@ function config() {
 		guard_mesh_timeout: n(m.guard_mesh_timeout, 90),
 		guard_confirm_timeout: n(m.guard_confirm_timeout, 240),
 		channels_2g: map(list(m.channels_2g ?? '1 6 11'), (x) => +x),
-		// channel width analysis (5 GHz): widths to compare, days of data
+		// channel width analysis (5 GHz, off by default): widths to compare,
+		// days of data
+		width_analysis: m.width_analysis == '1',
 		widths_5g: map(list(m.widths_5g ?? '40 80'), (x) => +x),
 		history_days: n(m.history_days, 3),
 		max_combos: n(m.max_combos, 50000),
@@ -920,12 +922,16 @@ function evaluate(opts) {
 					log('warn', '%s/%s: scan failed: %s', node.name, radio, res.error);
 				else {
 					scans[node.name + '/' + radio] = res.data;
-					record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now);
+					if (cfg.width_analysis)
+						record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now);
 				}
 			}
 		}
 
 		let model = build_model(cfg, st, scans);
+
+		if (!cfg.width_analysis)
+			st.chanstats = {};
 
 		st.radios = {};
 
@@ -934,7 +940,8 @@ function evaluate(opts) {
 			let d = score.decide(b.units, p, st.plans[band], st.last_switch, cfg, now);
 
 			record(st, model, band, p, d);
-			width_analysis(cfg, st, model, band, now);
+			if (cfg.width_analysis)
+				width_analysis(cfg, st, model, band, now);
 			log('info', '%s: cost %.2f -> %.2f, %s (%s)', band, p.current_cost, p.best_cost, d.action, d.reason);
 
 			let do_apply = (opts?.apply != null) ? opts.apply : (cfg.mode == 'apply');
