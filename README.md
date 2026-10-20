@@ -251,11 +251,10 @@ make menuconfig
 ```
 
 Select *LuCI → 3. Applications → luci-app-chanmgr* (it pulls `chanmgr`,
-found under *Network → WirelessAPD*). The Brazilian Portuguese translation
-`luci-i18n-chanmgr-pt-br` is selected with *LuCI → 2. Modules → Translations
-→ Portuguese (Brazil)*. Append `;<branch>` or `^<commit>` to the feed line to
-pin a version. Both packages are architecture independent, so the same build
-serves every device (router and access points).
+found under *Network → WirelessAPD*). Append `;<branch>` or `^<commit>` to the
+feed line to pin a version. Both packages are architecture independent, so the
+same build serves every device (router and access points). Checked with
+OpenWrt 24.10 (opkg) and 25.12 (apk).
 
 To try changes without rebuilding the firmware, `scripts/deploy.sh` copies the
 files to a running device.
