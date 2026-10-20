@@ -6,6 +6,7 @@
 let ctl = require('chanmgr.controller');
 let agent = require('chanmgr.agent');
 let guard = require('chanmgr.guard');
+let login = require('chanmgr.login');
 
 function usage() {
 	warn(
@@ -25,7 +26,9 @@ function usage() {
 		'                          guarded restart: back to the old channel unless the\n' +
 		'                          radio and its mesh peers come back within 90 s\n' +
 		'  agent status <radio>    State of the last guarded switch\n' +
-		'  agent recover           Undo unfinished switches (run at boot)\n\n' +
+		'  agent recover           Undo unfinished switches (run at boot)\n' +
+		'  agent login [<user> <password>]\n' +
+		'                          Show or set the login controllers use here\n\n' +
 		'Set CHANMGR_VERBOSE=1 to also print log messages.\n'
 	);
 
@@ -136,6 +139,11 @@ case 'agent':
 
 	case 'recover':
 		out(guard.recover());
+		break;
+
+	case 'login':
+		// chanmgr agent login <username> <password>
+		out(args[1] ? login.set(args[0], args[1]) : login.get());
 		break;
 	default: usage();
 	}

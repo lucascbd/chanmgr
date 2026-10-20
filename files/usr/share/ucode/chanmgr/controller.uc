@@ -40,6 +40,8 @@ function config() {
 
 	let cfg = {
 		enabled: m.enabled == '1',
+		// router: plans and switches all nodes; ap: only answers a controller
+		role: (m.role == 'ap') ? 'ap' : 'router',
 		mode: (m.mode == 'apply') ? 'apply' : 'recommend',
 		eval_times: list(m.eval_times ?? '02:30 04:30'),
 		sample_interval: n(m.sample_interval, 300),
@@ -841,10 +843,77 @@ function do_discover() {
 	return res;
 }
 
+// Scheduled evaluation times of the day containing `now`, as timestamps.
+function eval_slots(cfg, now) {
+	let lt = localtime(now);
+	let midnight = now - lt.hour * 3600 - lt.min * 60 - lt.sec;
+	let res = [];
+
+	for (let t in cfg.eval_times) {
+		let m = match(t, /^([0-9]{1,2}):([0-9]{2})$/);
+
+		if (m && +m[1] < 24 && +m[2] < 60)
+			push(res, { name: t, ts: midnight + +m[1] * 3600 + +m[2] * 60 });
+	}
+
+	return sort(res, (a, b) => a.ts - b.ts);
+}
+
+// The slot to run now, if any: due within the last hour and not run since.
+// The window (instead of the exact minute) keeps a slow sample or a long
+// evaluation from making the scheduler skip a slot.
+function due_slot(cfg, now, last_eval) {
+	for (let s in eval_slots(cfg, now))
+		if (now >= s.ts && now - s.ts < 3600 && (last_eval ?? 0) < s.ts)
+			return s;
+
+	return null;
+}
+
+function next_slot(cfg, now) {
+	for (let day = 0; day < 2; day++)
+		for (let s in eval_slots(cfg, now + day * 86400))
+			if (s.ts > now)
+				return s.ts;
+
+	return null;
+}
+
+function heartbeat(cfg, extra) {
+	fs.mkdir(RUN_DIR, 0700);
+	fs.writefile(RUN_DIR + '/daemon.json', sprintf('%J', {
+		pid: +fs.readlink('/proc/self'), ts: time(), next_eval: next_slot(cfg, time()), ...extra
+	}));
+}
+
+function scheduler() {
+	let d;
+
+	try {
+		d = json(fs.readfile(RUN_DIR + '/daemon.json') ?? 'null');
+	}
+	catch (e) {
+		d = null;
+	}
+
+	let cfg = config();
+
+	return {
+		enabled: cfg.enabled,
+		role: cfg.role,
+		mode: cfg.mode,
+		eval_times: cfg.eval_times,
+		running: !!(d?.pid && fs.stat('/proc/' + d.pid)),
+		next_eval: d?.next_eval ?? next_slot(cfg, time()),
+		heartbeat: d?.ts
+	};
+}
+
 function status() {
 	let st = load_state();
 
 	st.running = running();
+	st.scheduler = scheduler();
 	delete st.util;
 
 	return st;
@@ -852,18 +921,29 @@ function status() {
 
 // Long-running service loop (procd).
 function daemon() {
-	let last_sample = 0, done = {};
+	let last_sample = 0, failed = {};
 
-	log('info', 'started');
+	log('info', 'scheduler started, evaluations at %s', join(' ', config().eval_times));
 
 	while (true) {
-		let cfg = config(), now = time(), lt = localtime(now);
-		let hm = sprintf('%02d:%02d', lt.hour, lt.min);
-		let today = sprintf('%04d-%02d-%02d', lt.year, lt.mon, lt.mday);
+		let cfg = config(), now = time();
+		let slot = due_slot(cfg, now, load_state().last_eval);
 
-		if (index(cfg.eval_times, hm) >= 0 && done[hm] != today) {
-			done[hm] = today;
-			evaluate();
+		heartbeat(cfg);
+
+		if (slot && !failed[slot.ts]) {
+			log('info', 'scheduled evaluation (%s)', slot.name);
+			heartbeat(cfg, { busy: 'evaluate' });
+
+			let r = evaluate();
+
+			// another operation held the lock: try again on the next round;
+			// an evaluation that failed is not retried for this slot
+			if (r?.error)
+				log('warn', 'scheduled evaluation postponed: %s', r.error);
+			else if (!r?.ok)
+				failed[slot.ts] = true;
+
 			last_sample = time();
 		}
 		else if (now - last_sample >= cfg.sample_interval) {
@@ -875,4 +955,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler };

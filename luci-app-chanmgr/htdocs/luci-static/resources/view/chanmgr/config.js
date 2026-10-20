@@ -1,6 +1,22 @@
 'use strict';
 'require view';
 'require form';
+'require rpc';
+'require uci';
+'require ui';
+
+const callGetLogin = rpc.declare({
+	object: 'chanmgr',
+	method: 'get_login',
+	expect: { }
+});
+
+const callSetLogin = rpc.declare({
+	object: 'chanmgr',
+	method: 'set_login',
+	params: [ 'username', 'password' ],
+	expect: { }
+});
 
 const NAME_RE = /^[A-Za-z0-9_]+$/;
 
@@ -19,6 +35,21 @@ function nameOption(s, title, description) {
 	return o;
 }
 
+// Sections only shown when this device is the router (controller).
+function routerOnly(s) {
+	const render = s.render;
+
+	s.render = function(...args) {
+		return Promise.resolve(render.apply(this, args)).then((node) => E('div', { 'class': 'chanmgr-router-only' }, node));
+	};
+
+	return s;
+}
+
+function showRole(root, role) {
+	root.querySelectorAll('.chanmgr-router-only').forEach((el) => el.style.display = (role == 'ap') ? 'none' : '');
+}
+
 function validateTimes(section_id, value) {
 	if (value == null || value == '')
 		return true;
@@ -31,13 +62,59 @@ function validateTimes(section_id, value) {
 }
 
 return view.extend({
-	render() {
+	load() {
+		return Promise.all([ uci.load('chanmgr'), callGetLogin().catch(() => ({})) ]);
+	},
+
+	render([ , login ]) {
 		let m, s, o;
 
 		m = new form.Map('chanmgr', _('Channel Manager'),
-			_('Periodically scans the Wi-Fi channels of the configured nodes and moves their radios to the least congested channels. Start in "recommend only" mode and check the plans on the status page before enabling automatic switching.'));
+			_('Periodically scans the Wi-Fi channels of your access points and moves their radios to the least congested channels. One device, the router, plans for all of them; the access points only measure and switch when the router asks.'));
 
-		s = m.section(form.NamedSection, 'main', 'chanmgr');
+		s = m.section(form.NamedSection, 'main', 'chanmgr', _('Device role'));
+
+		o = s.option(form.ListValue, 'role', _('Mode'),
+			_('Router: plans and switches the channels of all access points. Access point: only measures and switches when the router asks.'));
+		o.value('router', _('Router'));
+		o.value('ap', _('Access point'));
+		o.default = 'router';
+		o.onchange = (ev, section_id, value) => showRole(document, value);
+
+		o = s.option(form.DummyValue, '_login_state', _('Login for the router'));
+		o.depends('role', 'ap');
+		o.cfgvalue = () => login?.configured
+			? _('"%s" is configured. Use it, with its password, when adding this access point as a node on the router.').format(login.username)
+			: _('Not configured yet: choose a user name and a password below and save.');
+
+		o = s.option(form.Value, 'agent_user', _('User name'),
+			_('Login the router uses to reach this access point. It can only measure and switch the Wi-Fi channels.'));
+		o.depends('role', 'ap');
+		o.placeholder = 'chanmgr';
+		o.datatype = 'and(minlength(1),maxlength(32))';
+		o.validate = (section_id, value) => (!value || /^[A-Za-z0-9_.-]+$/.test(value)) && value != 'root'
+			? true : _('Use letters, digits, ".", "_" or "-" (not root)');
+
+		o = s.option(form.Value, 'agent_password', _('Password'),
+			_('At least 8 characters. Leave empty to keep the current password.'));
+		o.depends('role', 'ap');
+		o.password = true;
+		o.datatype = 'minlength(8)';
+		// never stored in /etc/config/chanmgr: hashed into the rpcd login instead
+		o.cfgvalue = () => null;
+		o.remove = () => null;
+		o.write = function(section_id, value) {
+			const user = this.section.formvalue(section_id, 'agent_user') || 'chanmgr';
+
+			return callSetLogin(user, value).then((r) => {
+				if (r?.ok)
+					ui.addNotification(null, E('p', _('Login "%s" saved. Use it for this access point on the router.').format(user)), 'info');
+				else
+					ui.addNotification(null, E('p', _('Could not save the login: %s').format(r?.error ?? '?')), 'danger');
+			});
+		};
+
+		s = routerOnly(m.section(form.NamedSection, 'main', 'chanmgr', _('Router settings')));
 		s.tab('general', _('General'));
 		s.tab('decision', _('Decision'));
 		s.tab('advanced', _('Advanced'));
@@ -45,7 +122,7 @@ return view.extend({
 		o = s.taboption('general', form.Flag, 'enabled', _('Enable scheduler'),
 			_('Samples channel utilization and runs the scheduled evaluations. Manual evaluations work without it.'));
 
-		o = s.taboption('general', form.ListValue, 'mode', _('Mode'));
+		o = s.taboption('general', form.ListValue, 'mode', _('When a better channel is found'));
 		o.value('recommend', _('Recommend only'));
 		o.value('apply', _('Apply automatically'));
 		o.default = 'recommend';
@@ -138,8 +215,8 @@ return view.extend({
 		o = s.taboption('advanced', form.Flag, 'reload_fallback', _('Reload Wi-Fi if CSA fails'),
 			_('Falls back to "wifi reload", which disconnects all clients of the node.'));
 
-		s = m.section(form.GridSection, 'node', _('Nodes'),
-			_('Devices whose radios are managed. A node without host is this device. Remote nodes need the chanmgr package and an rpcd login with the "chanmgr-agent" ACL.'));
+		s = routerOnly(m.section(form.GridSection, 'node', _('Nodes'),
+			_('Devices whose radios are managed. A node without host is this device. On each access point, install chanmgr, set its mode to "Access point" and create its login there.')));
 		s.addremove = true;
 		s.anonymous = true;
 		s.nodescriptions = true;
@@ -190,8 +267,8 @@ return view.extend({
 			_('Radios that are ignored completely.'));
 		o.modalonly = true;
 
-		s = m.section(form.TableSection, 'group', _('Channel groups'),
-			_('Radios that must always share a channel, such as the members of an 802.11s mesh. They are moved together. A radio with a mesh interface that is not in a group is never moved.'));
+		s = routerOnly(m.section(form.TableSection, 'group', _('Channel groups'),
+			_('Radios that must always share a channel, such as the members of an 802.11s mesh. They are moved together. A radio with a mesh interface that is not in a group is never moved.')));
 		s.addremove = true;
 		s.anonymous = true;
 		s.addbtntitle = _('Add group');
@@ -202,6 +279,10 @@ return view.extend({
 		o = s.option(form.DynamicList, 'member', _('Members'), _('node/radio, e.g. ap1/radio1'));
 		o.validate = (section_id, value) => (!value || /^[A-Za-z0-9_]+\/[A-Za-z0-9_]+$/.test(value)) ? true : _('Expecting node/radio');
 
-		return m.render();
+		return m.render().then((node) => {
+			showRole(node, uci.get('chanmgr', 'main', 'role') ?? 'router');
+
+			return node;
+		});
 	}
 });

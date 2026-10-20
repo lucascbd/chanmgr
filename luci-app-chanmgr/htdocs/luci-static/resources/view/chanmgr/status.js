@@ -17,6 +17,12 @@ const callEvaluate = rpc.declare({
 	params: [ 'apply' ]
 });
 
+const callLocal = rpc.declare({
+	object: 'chanmgr',
+	method: 'local_status',
+	expect: { }
+});
+
 const callApply = rpc.declare({
 	object: 'chanmgr',
 	method: 'apply',
@@ -34,6 +40,26 @@ const ACTIONS = {
 };
 
 const BANDS = { '2g': '2.4 GHz', '5g': '5 GHz' };
+
+const GUARD = {
+	none: '-',
+	starting: _('starting'),
+	switching: _('switching'),
+	waiting_mesh: _('waiting for the mesh'),
+	waiting_confirm: _('waiting for the router'),
+	confirmed: _('confirmed, watching the mesh'),
+	rolling_back: _('going back'),
+	done: _('switched'),
+	rolled_back: _('went back'),
+	failed: _('failed')
+};
+
+// spacing that does not depend on the theme
+const ROW = 'display:flex;flex-wrap:wrap;gap:.5em;margin:.5em 0 1.5em 0';
+
+function warnText(text) {
+	return E('span', { 'style': 'color:#c00' }, text);
+}
 
 function fmtTime(ts) {
 	return ts ? new Date(ts * 1000).toLocaleString() : '-';
@@ -61,28 +87,82 @@ function table(headers, rows, empty) {
 
 return view.extend({
 	load() {
-		return callStatus();
+		return callStatus().then((st) => (st.scheduler?.role == 'ap')
+			? callLocal().then((ap) => ({ ap }))
+			: st);
+	},
+
+	renderScheduler(sc) {
+		if (!sc)
+			return '-';
+
+		if (!sc.enabled)
+			return _('off (enable it under Configuration to evaluate automatically)');
+
+		if (!sc.running)
+			return warnText(_('enabled but not running: run "/etc/init.d/chanmgr restart" on this device'));
+
+		return '%s, %s · %s'.format(_('running'),
+			sc.next_eval ? _('next evaluation %s').format(fmtTime(sc.next_eval)) : _('no evaluation times set'),
+			(sc.mode == 'apply') ? _('applies changes automatically') : _('recommends only'));
+	},
+
+	renderAp(ap) {
+		const info = ap.info ?? {}, rows = [];
+
+		for (const radio of Object.keys(info.radios ?? {}).sort()) {
+			const r = info.radios[radio], g = ap.guards?.[radio] ?? {};
+
+			rows.push([
+				radio, BANDS[r.band] ?? r.band, fmtChan(r),
+				(r.ifaces ?? []).map((i) => '%s (%s)'.format(i.ifname, i.mode)).join(', '),
+				E([], [ GUARD[g.state] ?? g.state ?? '-', g.msg ? E('div', { 'style': 'font-size:90%' }, g.msg) : '' ])
+			]);
+		}
+
+		for (const radio of Object.keys(info.down ?? {}).sort())
+			rows.push([ radio, '-', warnText(_('down')), info.down[radio], GUARD[ap.guards?.[radio]?.state] ?? '-' ]);
+
+		return E([], [
+			E('h2', _('Channel Manager')),
+			E('div', { 'class': 'cbi-map-descr' },
+				_('This device is an access point managed by a router running chanmgr. The router decides the channels; this page shows what it changed here.')),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', _('Overview')),
+				table([ _('Item'), _('Value') ], [
+					[ _('Host name'), info.hostname ?? '-' ],
+					[ _('Login for the router'), ap.login?.configured
+						? _('"%s" is configured').format(ap.login.username)
+						: warnText(_('not configured: set it under Configuration')) ]
+				], '')
+			]),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', _('Radios')),
+				table([ _('Radio'), _('Band'), _('Channel'), _('Interfaces'), _('Last switch') ], rows, _('No radios'))
+			])
+		]);
 	},
 
 	renderSummary(st) {
 		const rows = [
+			[ _('Scheduler'), this.renderScheduler(st.scheduler) ],
 			[ _('Last evaluation'), fmtTime(st.last_eval) ],
 			[ _('Last utilization sample'), fmtTime(st.last_sample) ],
 			[ _('Running'), st.running ? E('em', { 'class': 'spinning' }, st.running) : _('idle') ]
 		];
 
 		if (st.last_error)
-			rows.push([ _('Last error'), E('span', { 'style': 'color:red' }, st.last_error) ]);
+			rows.push([ _('Last error'), warnText(st.last_error) ]);
 
 		for (const name in st.nodes ?? {}) {
 			const n = st.nodes[name];
 
-			const down = Object.keys(n.down ?? {}).map((r) => E('div', { 'style': 'color:red' }, '%s: %s'.format(r, n.down[r])));
+			const down = Object.keys(n.down ?? {}).map((r) => E('div', {}, warnText('%s: %s'.format(r, n.down[r]))));
 
 			rows.push([
 				_('Node %s').format(name),
 				n.ok ? E([], [ '%s – %s'.format(n.hostname || '?', Object.keys(n.radios ?? {}).join(', ') || _('no radios')), ...down ])
-					: E('span', { 'style': 'color:red' }, n.error)
+					: warnText(n.error)
 			]);
 		}
 
@@ -117,10 +197,10 @@ return view.extend({
 				]),
 				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios')),
 				(p.key && p.action != 'applied')
-					? E('button', {
+					? E('div', { 'style': ROW }, E('button', {
 						'class': 'btn cbi-button cbi-button-apply',
 						'click': ui.createHandlerFn(this, 'handleApply', band)
-					}, _('Apply %s plan now').format(BANDS[band] ?? band))
+					}, _('Apply %s plan now').format(BANDS[band] ?? band)))
 					: ''
 			]));
 		}
@@ -155,7 +235,7 @@ return view.extend({
 				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
 				E('h4', _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Cost'), _('Neighbors'), _('Utilization'), _('Own APs') ], costs, _('No data')),
-				E('details', { 'data-key': rid }, [
+				E('details', { 'data-key': rid, 'style': 'margin-bottom:1.5em' }, [
 					E('summary', _('Neighbor networks (%d)').format(neigh.length)),
 					table([ _('SSID'), _('BSSID'), _('Channel'), _('Width'), _('Signal') ], neigh, _('No neighbors seen'))
 				])
@@ -230,6 +310,14 @@ return view.extend({
 	},
 
 	render(st) {
+		if (st.ap) {
+			const root = E('div', {}, this.renderAp(st.ap));
+
+			poll.add(() => callLocal().then((ap) => dom.content(root, this.renderAp(ap))), 10);
+
+			return root;
+		}
+
 		const root = E('div');
 
 		this.update(root, st);
@@ -240,9 +328,8 @@ return view.extend({
 			E('h2', _('Channel Manager')),
 			E('div', { 'class': 'cbi-map-descr' },
 				_('Measures channel congestion on the configured access points and moves their radios to the least congested channels, coordinating your own access points with each other.')),
-			E('div', { 'class': 'cbi-page-actions', 'style': 'text-align:left' }, [
+			E('div', { 'style': ROW }, [
 				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleEvaluate') }, _('Evaluate now')),
-				' ',
 				E('button', { 'class': 'btn cbi-button cbi-button-apply', 'click': ui.createHandlerFn(this, 'handleApply', '') }, _('Apply plan now'))
 			]),
 			root

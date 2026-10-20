@@ -6,6 +6,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 
+msgid "\"%s\" is configured"
+msgstr "\"%s\" está configurado"
+
+msgid "\"%s\" is configured. Use it, with its password, when adding this access point as a node on the router."
+msgstr "\"%s\" está configurado. Use-o, com a senha, ao adicionar este access point como nó no router."
+
 msgid "(current)"
 msgstr "(atual)"
 
@@ -18,6 +24,15 @@ msgstr "Canais de 2,4 GHz"
 msgid "A neighbor received at this level costs 1.0; every +10 dB multiplies the cost by 10."
 msgstr "Um vizinho recebido neste nível custa 1,0; cada +10 dB multiplica o custo por 10."
 
+msgid "Access point"
+msgstr "Access point"
+
+msgid "Add group"
+msgstr "Adicionar grupo"
+
+msgid "Add node"
+msgstr "Adicionar nó"
+
 msgid "Advanced"
 msgstr "Avançado"
 
@@ -26,6 +41,9 @@ msgstr "Permitir canais DFS"
 
 msgid "Applied"
 msgstr "Aplicado"
+
+msgid "Apply %s plan now"
+msgstr "Aplicar agora o plano de %s"
 
 msgid "Apply automatically"
 msgstr "Aplicar automaticamente"
@@ -36,8 +54,14 @@ msgstr "Aplicar plano agora"
 msgid "Applying the plan, one radio at a time."
 msgstr "Aplicando o plano, um rádio por vez."
 
+msgid "At least 8 characters. Leave empty to keep the current password."
+msgstr "Pelo menos 8 caracteres. Deixe vazio para manter a senha atual."
+
 msgid "BSSID"
 msgstr "BSSID"
+
+msgid "Band"
+msgstr "Banda"
 
 msgid "Beacons announcing the channel switch before it happens."
 msgstr "Beacons que anunciam a troca de canal antes que ela aconteça."
@@ -66,11 +90,17 @@ msgstr "Trocas de canal"
 msgid "Channel groups"
 msgstr "Grupos de canal"
 
+msgid "Channel switch announcement (experimental)"
+msgstr "Anúncio de troca de canal (experimental)"
+
 msgid "Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected."
 msgstr "Os canais 52–144 exigem uma verificação de disponibilidade silenciosa (de 1 a 10 minutos) e precisam ser abandonados quando um radar é detectado."
 
 msgid "Configuration"
 msgstr "Configuração"
+
+msgid "Confirmation timeout"
+msgstr "Tempo para a confirmação"
 
 msgid "Confirmations"
 msgstr "Confirmações"
@@ -81,6 +111,9 @@ msgstr "Custo"
 msgid "Cost added by a fully busy channel, compared to a neighbor received at the reference level."
 msgstr "Custo somado por um canal totalmente ocupado, em comparação com um vizinho recebido no nível de referência."
 
+msgid "Could not save the login: %s"
+msgstr "Não foi possível salvar o login: %s"
+
 msgid "Current channel"
 msgstr "Canal atual"
 
@@ -90,8 +123,11 @@ msgstr "Decisão"
 msgid "Details"
 msgstr "Detalhes"
 
-msgid "Devices whose radios are managed. A node without host is this device. Remote nodes need the chanmgr package and an rpcd login with the \"chanmgr-agent\" ACL."
-msgstr "Dispositivos cujos rádios são gerenciados. Um nó sem host é este dispositivo. Nós remotos precisam do pacote chanmgr e de um login do rpcd com a ACL \"chanmgr-agent\"."
+msgid "Device role"
+msgstr "Função do dispositivo"
+
+msgid "Devices whose radios are managed. A node without host is this device. On each access point, install chanmgr, set its mode to \"Access point\" and create its login there."
+msgstr "Dispositivos cujos rádios são gerenciados. Um nó sem host é este dispositivo. Em cada access point, instale o chanmgr, escolha o modo \"Access point\" e crie o login lá."
 
 msgid "Enable scheduler"
 msgstr "Ativar agendador"
@@ -129,8 +165,17 @@ msgstr "Geral"
 msgid "Grant access to the Wi-Fi channel manager"
 msgstr "Conceder acesso ao gerenciador de canais Wi-Fi"
 
+msgid "Guarded restart (recommended)"
+msgstr "Reinício protegido (recomendado)"
+
 msgid "Host"
 msgstr "Host"
+
+msgid "Host name"
+msgstr "Nome do host"
+
+msgid "Interfaces"
+msgstr "Interfaces"
 
 msgid "Item"
 msgstr "Item"
@@ -143,6 +188,9 @@ msgstr "Último erro"
 
 msgid "Last evaluation"
 msgstr "Última avaliação"
+
+msgid "Last switch"
+msgstr "Última troca"
 
 msgid "Last utilization sample"
 msgstr "Última amostra de utilização"
@@ -159,11 +207,23 @@ msgstr "Rádios travados"
 msgid "Log"
 msgstr "Log"
 
+msgid "Login \"%s\" saved. Use it for this access point on the router."
+msgstr "Login \"%s\" salvo. Use-o para este access point no router."
+
+msgid "Login for the router"
+msgstr "Login para o router"
+
+msgid "Login the router uses to reach this access point. It can only measure and switch the Wi-Fi channels."
+msgstr "Login que o router usa para acessar este access point. Ele só pode medir e trocar os canais Wi-Fi."
+
 msgid "Measures channel congestion on the configured access points and moves their radios to the least congested channels, coordinating your own access points with each other."
 msgstr "Mede o congestionamento dos canais nos access points configurados e move os rádios para os canais menos congestionados, coordenando seus próprios access points entre si."
 
 msgid "Members"
 msgstr "Membros"
+
+msgid "Mesh recovery timeout"
+msgstr "Tempo para o mesh voltar"
 
 msgid "Minimum absolute gain"
 msgstr "Ganho absoluto mínimo"
@@ -179,6 +239,9 @@ msgstr "Modo"
 
 msgid "Multiplier for the interference between your own access points."
 msgstr "Multiplicador da interferência entre os seus próprios access points."
+
+msgid "Name"
+msgstr "Nome"
 
 msgid "Neighbor networks (%d)"
 msgstr "Redes vizinhas (%d)"
@@ -213,6 +276,9 @@ msgstr "Nó %s"
 msgid "Nodes"
 msgstr "Nós"
 
+msgid "Not configured yet: choose a user name and a password below and save."
+msgstr "Ainda não configurado: escolha um usuário e uma senha abaixo e salve."
+
 msgid "Number of consecutive evaluations that must propose the same plan."
 msgstr "Número de avaliações consecutivas que precisam propor o mesmo plano."
 
@@ -240,8 +306,8 @@ msgstr "Pausa entre nós"
 msgid "Pause between switches"
 msgstr "Pausa entre trocas"
 
-msgid "Periodically scans the Wi-Fi channels of the configured nodes and moves their radios to the least congested channels. Start in \"recommend only\" mode and check the plans on the status page before enabling automatic switching."
-msgstr "Varre periodicamente os canais Wi-Fi dos nós configurados e move os rádios para os canais menos congestionados. Comece no modo \"Só recomendar\" e confira os planos na página de status antes de ativar a troca automática."
+msgid "Periodically scans the Wi-Fi channels of your access points and moves their radios to the least congested channels. One device, the router, plans for all of them; the access points only measure and switch when the router asks."
+msgstr "Varre periodicamente os canais Wi-Fi dos seus access points e move os rádios para os canais menos congestionados. Um dispositivo, o router, planeja para todos; os access points só medem e trocam quando o router pede."
 
 msgid "Plan"
 msgstr "Plano"
@@ -264,6 +330,9 @@ msgstr "Rádios"
 msgid "Radios (e.g. radio0) that are measured and avoided by the others but never moved."
 msgstr "Rádios (ex.: radio0) que são medidos e evitados pelos outros, mas nunca movidos."
 
+msgid "Radios that also carry an 802.11s mesh interface. With the guarded restart every node switches on its own and goes back to the old channel by itself if its radio or its mesh peers do not come back, or if this controller cannot confirm the switch. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
+msgstr "Rádios que também têm uma interface mesh 802.11s. No reinício protegido, cada nó troca de canal por conta própria e volta sozinho para o canal antigo se o rádio ou os vizinhos de mesh não voltarem, ou se este controlador não conseguir confirmar a troca. Nem todo driver suporta anúncio de troca de canal nesses rádios, e ele pode deixar o rádio desligado."
+
 msgid "Radios that are ignored completely."
 msgstr "Rádios ignorados por completo."
 
@@ -282,6 +351,15 @@ msgstr "Recarregar o Wi-Fi se o CSA falhar"
 msgid "Result"
 msgstr "Resultado"
 
+msgid "Router"
+msgstr "Router"
+
+msgid "Router settings"
+msgstr "Configurações do router"
+
+msgid "Router: plans and switches the channels of all access points. Access point: only measures and switches when the router asks."
+msgstr "Router: planeja e troca os canais de todos os access points. Access point: só mede e troca quando o router pede."
+
 msgid "Running"
 msgstr "Em execução"
 
@@ -293,6 +371,15 @@ msgstr "Amostra a utilização dos canais e executa as avaliações agendadas. A
 
 msgid "Sampling interval"
 msgstr "Intervalo de amostragem"
+
+msgid "Scheduler"
+msgstr "Agendador"
+
+msgid "Seconds a node waits for its mesh peers on the new channel before it returns to the old one on its own."
+msgstr "Segundos que um nó espera os vizinhos de mesh no canal novo antes de voltar sozinho para o canal antigo."
+
+msgid "Seconds a node waits for this controller to confirm the switch (only possible when every node of the group is reachable on the new channel) before it returns to the old one on its own."
+msgstr "Segundos que um nó espera este controlador confirmar a troca (só possível quando todos os nós do grupo respondem no canal novo) antes de voltar sozinho para o canal antigo."
 
 msgid "Seconds a radio must stay on a channel before it can be moved again."
 msgstr "Segundos que um rádio precisa ficar num canal antes de poder ser movido de novo."
@@ -306,6 +393,9 @@ msgstr "Segundos entre a troca de dois rádios."
 msgid "Seconds between the scans of two nodes, so they are never off-channel at the same time."
 msgstr "Segundos entre as varreduras de dois nós, para que nunca saiam do canal ao mesmo tempo."
 
+msgid "Short identifier used in groups, e.g. ap1."
+msgstr "Identificador curto usado nos grupos, ex.: ap1."
+
 msgid "Signal"
 msgstr "Sinal"
 
@@ -318,11 +408,20 @@ msgstr "Horários locais (HH:MM) separados por espaço. A varredura tira os rád
 msgid "Status"
 msgstr "Status"
 
+msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
+msgstr "Trocar agora os rádios de %s para os canais planejados? A outra banda não é alterada. Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."
+
 msgid "Switch the radios to the planned channels now? Clients will follow the channel switch announcement; some may reconnect."
 msgstr "Trocar os rádios para os canais planejados agora? Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."
 
 msgid "Switching"
 msgstr "Trocando"
+
+msgid "Switching radios with mesh"
+msgstr "Troca em rádios com mesh"
+
+msgid "This device is an access point managed by a router running chanmgr. The router decides the channels; this page shows what it changed here."
+msgstr "Este dispositivo é um access point gerenciado por um router com chanmgr. O router decide os canais; esta página mostra o que ele mudou aqui."
 
 msgid "Time"
 msgstr "Horário"
@@ -335,6 +434,15 @@ msgstr "Custo total: atual %s, melhor %s (ganho %s / %s). Avaliado em %s."
 
 msgid "Use HTTPS"
 msgstr "Usar HTTPS"
+
+msgid "Use letters, digits, \".\", \"_\" or \"-\" (not root)"
+msgstr "Use letras, números, \".\", \"_\" ou \"-\" (não use root)"
+
+msgid "Use only letters, digits and underscores"
+msgstr "Use apenas letras, números e sublinhado"
+
+msgid "User name"
+msgstr "Usuário"
 
 msgid "Username"
 msgstr "Usuário"
@@ -351,11 +459,29 @@ msgstr "Valor"
 msgid "Waiting for confirmation"
 msgstr "Aguardando confirmação"
 
+msgid "When a better channel is found"
+msgstr "Quando achar um canal melhor"
+
 msgid "Width"
 msgstr "Largura"
 
+msgid "applies changes automatically"
+msgstr "aplica as trocas automaticamente"
+
+msgid "confirmed, watching the mesh"
+msgstr "confirmado, vigiando o mesh"
+
+msgid "down"
+msgstr "desligado"
+
+msgid "enabled but not running: run \"/etc/init.d/chanmgr restart\" on this device"
+msgstr "ativado mas não está rodando: rode \"/etc/init.d/chanmgr restart\" neste dispositivo"
+
 msgid "failed"
 msgstr "falhou"
+
+msgid "going back"
+msgstr "voltando"
 
 msgid "hidden"
 msgstr "oculta"
@@ -363,14 +489,41 @@ msgstr "oculta"
 msgid "idle"
 msgstr "ocioso"
 
+msgid "next evaluation %s"
+msgstr "próxima avaliação %s"
+
+msgid "no evaluation times set"
+msgstr "nenhum horário de avaliação definido"
+
 msgid "no radios"
 msgstr "sem rádios"
 
 msgid "node/radio, e.g. ap1/radio1"
 msgstr "nó/rádio, ex.: ap1/radio1"
 
+msgid "not configured: set it under Configuration"
+msgstr "não configurado: defina em Configuração"
+
+msgid "off (enable it under Configuration to evaluate automatically)"
+msgstr "desligado (ative em Configuração para avaliar automaticamente)"
+
 msgid "ok"
 msgstr "ok"
+
+msgid "recommends only"
+msgstr "só recomenda"
+
+msgid "running"
+msgstr "rodando"
+
+msgid "starting"
+msgstr "iniciando"
+
+msgid "switched"
+msgstr "trocado"
+
+msgid "switching"
+msgstr "trocando"
 
 msgid "this device"
 msgstr "este dispositivo"
@@ -378,53 +531,11 @@ msgstr "este dispositivo"
 msgid "utilization %s"
 msgstr "utilização %s"
 
-msgid "Add group"
-msgstr "Adicionar grupo"
+msgid "waiting for the mesh"
+msgstr "esperando o mesh"
 
-msgid "Add node"
-msgstr "Adicionar nó"
+msgid "waiting for the router"
+msgstr "esperando o router"
 
-msgid "Name"
-msgstr "Nome"
-
-msgid "Short identifier used in groups, e.g. ap1."
-msgstr "Identificador curto usado nos grupos, ex.: ap1."
-
-msgid "Use only letters, digits and underscores"
-msgstr "Use apenas letras, números e sublinhado"
-
-msgid "Apply %s plan now"
-msgstr "Aplicar agora o plano de %s"
-
-msgid "Switch the %s radios to the planned channels now? The other band is not touched. Clients follow the channel switch announcement; some may reconnect."
-msgstr "Trocar agora os rádios de %s para os canais planejados? A outra banda não é alterada. Os clientes seguem o anúncio de troca de canal; alguns podem reconectar."
-
-msgid "Switching radios with mesh"
-msgstr "Troca em rádios com mesh"
-
-msgid "Radios that also carry an 802.11s mesh interface. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
-msgstr "Rádios que também têm uma interface mesh 802.11s. Nem todo driver suporta anúncio de troca de canal nesses rádios, e ele pode deixar o rádio desligado."
-
-msgid "Restart the radio (clients reconnect)"
-msgstr "Reiniciar o rádio (clientes reconectam)"
-
-msgid "Channel switch announcement (experimental)"
-msgstr "Anúncio de troca de canal (experimental)"
-
-msgid "Guarded restart (recommended)"
-msgstr "Reinício protegido (recomendado)"
-
-msgid "Mesh recovery timeout"
-msgstr "Tempo para o mesh voltar"
-
-msgid "Seconds a node waits for its mesh peers on the new channel before it returns to the old one on its own."
-msgstr "Segundos que um nó espera os vizinhos de mesh no canal novo antes de voltar sozinho para o canal antigo."
-
-msgid "Confirmation timeout"
-msgstr "Tempo para a confirmação"
-
-msgid "Seconds a node waits for this controller to confirm the switch (only possible when every node of the group is reachable on the new channel) before it returns to the old one on its own."
-msgstr "Segundos que um nó espera este controlador confirmar a troca (só possível quando todos os nós do grupo respondem no canal novo) antes de voltar sozinho para o canal antigo."
-
-msgid "Radios that also carry an 802.11s mesh interface. With the guarded restart every node switches on its own and goes back to the old channel by itself if its radio or its mesh peers do not come back, or if this controller cannot confirm the switch. A channel switch announcement on such a radio is not supported by every driver and can leave the radio down."
-msgstr "Rádios que também têm uma interface mesh 802.11s. No reinício protegido, cada nó troca de canal por conta própria e volta sozinho para o canal antigo se o rádio ou os vizinhos de mesh não voltarem, ou se este controlador não conseguir confirmar a troca. Nem todo driver suporta anúncio de troca de canal nesses rádios, e ele pode deixar o rádio desligado."
+msgid "went back"
+msgstr "voltou ao canal anterior"

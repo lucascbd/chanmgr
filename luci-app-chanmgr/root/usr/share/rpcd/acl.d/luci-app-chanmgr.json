@@ -3,13 +3,13 @@
 		"description": "Grant access to the Wi-Fi channel manager",
 		"read": {
 			"ubus": {
-				"chanmgr": [ "status" ]
+				"chanmgr": [ "status", "local_status", "get_login" ]
 			},
 			"uci": [ "chanmgr" ]
 		},
 		"write": {
 			"ubus": {
-				"chanmgr": [ "evaluate", "apply", "discover" ]
+				"chanmgr": [ "evaluate", "apply", "discover", "set_login" ]
 			},
 			"uci": [ "chanmgr" ]
 		}

@@ -79,16 +79,15 @@ iw uclient-fetch`. The script warns about missing ones.
 
 ### Remote access points
 
-On each access point, create an rpcd login that can only use the agent methods:
+On each access point, open **Network → Channel Manager → Configuration**, set
+*Mode* to **Access point** and choose a user name and password. This creates an
+rpcd login that can only use the agent methods (the `chanmgr-agent` ACL). The
+password is hashed into `/etc/config/rpcd` and never stored in
+`/etc/config/chanmgr`. Without LuCI:
 
 ```sh
-uci add rpcd login
-uci set rpcd.@login[-1].username='chanmgr'
-uci set rpcd.@login[-1].password="$(uhttpd -m 'a-long-secret')"
-uci add_list rpcd.@login[-1].read='chanmgr-agent'
-uci add_list rpcd.@login[-1].write='chanmgr-agent'
-uci commit rpcd
-/etc/init.d/rpcd restart
+uci set chanmgr.main.role='ap'; uci commit chanmgr
+chanmgr agent login chanmgr 'a-long-secret'
 ```
 
 The access point also needs `uhttpd` with `uhttpd-mod-ubus`, which comes with LuCI.
@@ -152,9 +151,10 @@ chanmgr agent info | survey | scan <radio>
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `enabled` | `0` | run the scheduler service |
+| `role` | `router` | `router` plans for all nodes; `ap` only answers a router |
+| `enabled` | `0` | run the scheduler service (router only) |
 | `mode` | `recommend` | `recommend` (log and show) or `apply` |
-| `eval_times` | `02:30 04:30` | local times of the scheduled evaluations |
+| `eval_times` | `02:30 04:30` | local times of the scheduled evaluations; a slot missed by up to an hour still runs |
 | `sample_interval` | `300` | seconds between utilization samples |
 | `scan_gap` | `120` | seconds between the scans of two nodes |
 | `apply_gap` | `30` | seconds between switching two units |

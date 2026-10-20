@@ -8,6 +8,7 @@ let fs = require('fs');
 let agent = require('chanmgr.agent');
 let ctl = require('chanmgr.controller');
 let guard = require('chanmgr.guard');
+let login = require('chanmgr.login');
 
 // long operations run detached; LuCI polls "status"
 function background(cmd) {
@@ -42,6 +43,20 @@ return {
 		evaluate: { args: { apply: false }, call: wrap((a) => background(a.apply ? 'evaluate --apply --no-gap' : 'evaluate --dry-run --no-gap')) },
 		apply: { args: { band: '' }, call: wrap((a) => background(match(a.band ?? '', /^(2g|5g)$/) ? 'apply ' + a.band : 'apply')) },
 		discover: { call: wrap(() => ctl.discover()) },
+
+		// this device as an access point managed by a controller
+		local_status: {
+			call: wrap(() => {
+				let info = agent.info(), guards = {};
+
+				for (let radio in [ ...keys(info.radios), ...keys(info.down ?? {}) ])
+					guards[radio] = guard.status(radio);
+
+				return { role: ctl.config().role, info, guards, login: login.get() };
+			})
+		},
+		get_login: { call: wrap(() => login.get()) },
+		set_login: { args: { username: '', password: '' }, call: wrap((a) => login.set(a.username || null, a.password)) },
 
 		agent_info: { call: wrap(() => agent.info()) },
 		agent_survey: { call: wrap(() => agent.survey()) },

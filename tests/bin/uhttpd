@@ -1,0 +1,3 @@
+#!/bin/sh
+# Test stand-in for "uhttpd -m <password>".
+[ "$1" = "-m" ] && echo '$1$test$'"$(printf %s "$2" | md5sum | cut -c1-22)"

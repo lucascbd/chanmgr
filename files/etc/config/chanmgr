@@ -1,4 +1,6 @@
 config chanmgr 'main'
+	# router: plans the channels of all nodes; ap: managed by a router
+	option role 'router'
 	# start the scheduler (sampling + nightly evaluations)
 	option enabled '0'
 	# recommend: only log and show the plan; apply: switch channels
