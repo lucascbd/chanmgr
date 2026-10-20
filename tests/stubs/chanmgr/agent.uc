@@ -54,7 +54,7 @@ function survey() {
 function scan(radio) {
 	push(calls, 'scan ' + radio);
 
-	return { radio, neighbors: dev.neighbors[radio], survey: [] };
+	return { radio, neighbors: dev.neighbors[radio], survey: dev.survey?.[radio] ?? [] };
 }
 
 function switch_channel(a) {

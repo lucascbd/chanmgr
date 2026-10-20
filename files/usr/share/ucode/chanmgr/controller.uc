@@ -65,6 +65,9 @@ function config() {
 		guard_mesh_timeout: n(m.guard_mesh_timeout, 90),
 		guard_confirm_timeout: n(m.guard_confirm_timeout, 240),
 		channels_2g: map(list(m.channels_2g ?? '1 6 11'), (x) => +x),
+		// channel width analysis (5 GHz): widths to compare, days of data
+		widths_5g: map(list(m.widths_5g ?? '40 80'), (x) => +x),
+		history_days: n(m.history_days, 3),
 		max_combos: n(m.max_combos, 50000),
 		nodes: [],
 		groups: []
@@ -119,6 +122,7 @@ function load_state() {
 	s.util ??= {};
 	s.last_switch ??= {};
 	s.history ??= [];
+	s.chanstats ??= {};
 
 	return s;
 }
@@ -446,6 +450,155 @@ function build_model(cfg, st, scans) {
 	return { radios, pairs, bands };
 }
 
+/* --- channel width analysis --------------------------------------------- */
+
+// Keep one busy-fraction sample per 20 MHz channel and evaluation, from the
+// survey counters reported after a scan. Counters may be cumulative (then
+// the difference to the previous evaluation is used) or reset per scan.
+function record_chanstats(st, rid, survey, days, now) {
+	let h = st.chanstats[rid] ??= {};
+
+	for (let e in survey ?? []) {
+		if (e.active == null || e.busy == null)
+			continue;
+
+		let c = h['' + e.freq] ??= { samples: [] };
+		let busy = max(0, e.busy - (e.tx ?? 0)), active = e.active;
+		let da = active, db = busy;
+
+		if (c.last && active > c.last.active && busy >= c.last.busy) {
+			da = active - c.last.active;
+			db = busy - c.last.busy;
+		}
+
+		c.last = { active, busy };
+
+		if (da > 0)
+			push(c.samples, [ now, min(1, 1.0 * db / da) ]);
+	}
+
+	// keep a little more than the analysis window
+	for (let f, c in h) {
+		c.samples = filter(c.samples, (x) => x[0] >= now - (days + 1) * 86400);
+
+		if (length(c.samples) > 200)
+			c.samples = slice(c.samples, -200);
+	}
+}
+
+// Mean busy fraction per frequency over the last `days`, with sample count
+// and age of the oldest sample.
+function chanstats_summary(h, days, now) {
+	let util = {}, count = {}, first = {};
+
+	for (let f, c in h ?? {}) {
+		let xs = filter(c.samples, (x) => x[0] >= now - days * 86400);
+
+		if (!length(xs))
+			continue;
+
+		let sum = 0;
+
+		for (let x in xs)
+			sum += x[1];
+
+		util[f] = 1.0 * sum / length(xs);
+		count[f] = length(xs);
+		first[f] = xs[0][0];
+	}
+
+	return { util, count, first };
+}
+
+// Analysis only: estimated capacity of every channel option per width,
+// for each 5 GHz radio and for each unit (members of a group summed).
+function width_analysis(cfg, st, model, band, now) {
+	if (band != '5g')
+		return;
+
+	let per_radio = {};
+
+	for (let u in model.bands[band].units) {
+		for (let rid in u.radios) {
+			let r = model.radios[rid], nr = split(rid, '/');
+			let ni = st.nodes[nr[0]]?.radios?.[nr[1]];
+
+			if (!r || !ni)
+				continue;
+
+			let sum = chanstats_summary(st.chanstats[rid], cfg.history_days, now);
+			let allowed = chan.allowed_map(ni.channels, band);
+			let vht = chan.htmode_flags(r.htmode, band).vht;
+			let widths = uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ]);
+			let opts = {};
+
+			let add = (s) => {
+				let subs = chan.subchannels(s);
+				let n = min(...map(subs, (c) => sum.count['' + chan.chan2freq(band, c)] ?? 0));
+				let oldest = min(...map(subs, (c) => sum.first['' + chan.chan2freq(band, c)] ?? now));
+
+				opts[chan.key(s)] = {
+					channel: s.channel, width: s.width,
+					capacity: score.capacity(s, sum.util),
+					samples: n, days: (now - oldest) / 86400.0,
+					current: chan.same(s, r.current)
+				};
+			};
+
+			for (let w in widths)
+				for (let s in chan.candidates(band, w, allowed, cfg, r.current.channel))
+					add(s);
+
+			add(r.current);
+			per_radio[rid] = opts;
+
+			if (st.radios[rid])
+				st.radios[rid].widths = slice(sort(values(opts), (a, b) => (b.capacity ?? -1) - (a.capacity ?? -1)), 0, 10);
+		}
+	}
+
+	// per unit: a group must use one option on all members, so add them up
+	let units = [];
+
+	for (let u in model.bands[band].units) {
+		let members = filter(u.radios, (rid) => per_radio[rid]);
+
+		if (!length(members))
+			continue;
+
+		let comb = {};
+
+		for (let k, o in per_radio[members[0]]) {
+			let all = map(members, (rid) => per_radio[rid][k]);
+
+			if (length(filter(all, (x) => x?.capacity != null)) != length(members))
+				continue;
+
+			comb[k] = {
+				channel: o.channel, width: o.width, current: o.current,
+				capacity: 0, samples: min(...map(all, (x) => x.samples)), days: min(...map(all, (x) => x.days))
+			};
+
+			for (let x in all)
+				comb[k].capacity += x.capacity;
+		}
+
+		let ranked = sort(values(comb), (a, b) => b.capacity - a.capacity);
+		let cur = filter(ranked, (x) => x.current)[0];
+		let best = ranked[0];
+
+		push(units, {
+			id: u.id, radios: u.radios,
+			current: cur, best,
+			gain: (cur?.capacity > 0 && best) ? best.capacity / cur.capacity - 1 : null,
+			ready: !!best && best.days >= cfg.history_days && (!cur || cur.days >= cfg.history_days),
+			history_days: cfg.history_days
+		});
+	}
+
+	st.plans[band].widths = units;
+}
+
 function spec_json(s) {
 	return s ? { channel: s.channel, width: s.width } : null;
 }
@@ -765,8 +918,10 @@ function evaluate(opts) {
 
 				if (res.error)
 					log('warn', '%s/%s: scan failed: %s', node.name, radio, res.error);
-				else
+				else {
 					scans[node.name + '/' + radio] = res.data;
+					record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now);
+				}
 			}
 		}
 
@@ -779,6 +934,7 @@ function evaluate(opts) {
 			let d = score.decide(b.units, p, st.plans[band], st.last_switch, cfg, now);
 
 			record(st, model, band, p, d);
+			width_analysis(cfg, st, model, band, now);
 			log('info', '%s: cost %.2f -> %.2f, %s (%s)', band, p.current_cost, p.best_cost, d.action, d.reason);
 
 			let do_apply = (opts?.apply != null) ? opts.apply : (cfg.mode == 'apply');
@@ -915,6 +1071,7 @@ function status() {
 	st.running = running();
 	st.scheduler = scheduler();
 	delete st.util;
+	delete st.chanstats;
 
 	return st;
 }
@@ -961,4 +1118,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary };

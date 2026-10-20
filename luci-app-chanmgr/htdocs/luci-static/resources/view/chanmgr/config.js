@@ -117,6 +117,7 @@ return view.extend({
 		s = routerOnly(m.section(form.NamedSection, 'main', 'chanmgr', _('Router settings')));
 		s.tab('general', _('General'));
 		s.tab('decision', _('Decision'));
+		s.tab('width', _('Channel width'));
 		s.tab('advanced', _('Advanced'));
 
 		o = s.taboption('general', form.Flag, 'enabled', _('Enable scheduler'),
@@ -168,6 +169,22 @@ return view.extend({
 			_('Candidate channels in the 2.4 GHz band. Only non-overlapping channels are recommended.'));
 		o.datatype = 'range(1,14)';
 		o.placeholder = '1';
+
+		o = s.taboption('width', form.DummyValue, '_width_note', ' ');
+		o.cfgvalue = () => _('Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet.');
+
+		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),
+			_('The width configured on the radio is always included.'));
+		o.value('20', '20 MHz');
+		o.value('40', '40 MHz');
+		o.value('80', '80 MHz');
+		o.value('160', '160 MHz');
+		o.default = '40 80';
+
+		o = s.taboption('width', form.Value, 'history_days', _('Days of measurements'),
+			_('How many days of scans an estimate needs before it is considered reliable.'));
+		o.datatype = 'range(1,30)';
+		o.placeholder = '3';
 
 		o = s.taboption('advanced', form.Value, 'util_weight', _('Utilization weight'),
 			_('Cost added by a fully busy channel, compared to a neighbor received at the reference level.'));

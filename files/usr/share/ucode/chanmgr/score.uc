@@ -38,6 +38,39 @@ function own_penalty(a, b, signal, opts) {
 	return (opts.own_weight ?? 2) * chan.overlap(a, b) * weight(signal, opts.ref_rssi);
 }
 
+// Estimated capacity of a channel option, in units of one free 20 MHz
+// channel, from the busy fraction of each 20 MHz subchannel (util: freq ->
+// 0..1). A transmission uses a width only when every subchannel of that
+// block, built around the primary channel, is free; otherwise it falls back
+// to the next narrower width (dynamic bandwidth). Assuming subchannels are
+// busy independently:
+//   capacity = P(20 free) + P(40 free) + 2 * P(80 free) + 4 * P(160 free)
+// Returns null when a subchannel has no data.
+function capacity(s, util) {
+	let total = 0;
+
+	for (let w = 20; w <= s.width; w *= 2) {
+		let b = (w == s.width) ? s : chan.spec(s.band, s.channel, w);
+		let p = 1.0;
+
+		if (b.width != w)
+			return null;
+
+		for (let c in chan.subchannels(b)) {
+			let u = util?.['' + chan.chan2freq(s.band, c)];
+
+			if (u == null)
+				return null;
+
+			p *= 1 - u;
+		}
+
+		total += (w == 20) ? p : p * w / 40.0;
+	}
+
+	return total;
+}
+
 // Joint search over all units of one band.
 //   units:  [ { id, radios: [rid..], current: spec, candidates: [spec..], locked } ]
 //   radios: { rid: radio }
@@ -227,4 +260,4 @@ function decide(units, p, prev, last_switch, opts, now) {
 	return { ...res, action: 'switch', reason: sprintf('gain %.2f (%.0f%%)', gain, rel * 100) };
 }
 
-return { weight, util_of, radio_cost, own_penalty, plan, plan_key, decide };
+return { weight, util_of, radio_cost, own_penalty, plan, plan_key, decide, capacity };

@@ -57,6 +57,23 @@ const GUARD = {
 // spacing that does not depend on the theme
 const ROW = 'display:flex;flex-wrap:wrap;gap:.5em;margin:.5em 0 1.5em 0';
 
+function fmtCap(v) {
+	return (v != null) ? '%.2f'.format(v) : '-';
+}
+
+function fmtGain(v) {
+	return (v != null) ? '%s%.0f%%'.format(v >= 0 ? '+' : '', v * 100) : '-';
+}
+
+function fmtData(o, days) {
+	if (!o)
+		return '-';
+
+	return (o.days >= days)
+		? _('%d samples, ready').format(o.samples)
+		: _('%d samples, %.1f of %d days').format(o.samples, o.days, days);
+}
+
 function warnText(text) {
 	return E('span', { 'style': 'color:#c00' }, text);
 }
@@ -196,6 +213,16 @@ return view.extend({
 						fmtNum(p.current_cost), fmtNum(p.best_cost), fmtNum(p.gain), fmtPct(p.rel), fmtTime(p.ts))
 				]),
 				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios')),
+				p.widths?.length ? E([], [
+					E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Channel width (analysis only)')),
+					table([ _('Radios'), _('Current'), _('Capacity'), _('Best option'), _('Capacity'), _('Gain'), _('Data') ],
+						p.widths.map((w) => [
+							w.radios.join(', '), fmtChan(w.current), fmtCap(w.current?.capacity),
+							w.best ? E('strong', fmtChan(w.best)) : '-', fmtCap(w.best?.capacity),
+							fmtGain(w.gain), fmtData(w.best, w.history_days)
+						]), _('No data yet')),
+					E('p', { 'style': 'font-size:90%' }, _('Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. Nothing is changed; widths are only analysed until enough days of measurements are collected.'))
+				]) : '',
 				(p.key && p.action != 'applied')
 					? E('div', { 'style': ROW }, E('button', {
 						'class': 'btn cbi-button cbi-button-apply',
@@ -235,6 +262,20 @@ return view.extend({
 				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
 				E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Cost'), _('Neighbors'), _('Utilization'), _('Own APs') ], costs, _('No data')),
+				r.widths?.length ? E([], [
+					E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Channel width estimate')),
+					table([ _('Channel'), _('Width'), _('Capacity'), _('vs current'), _('Data') ],
+						r.widths.map((w) => {
+							const cur = r.widths.find((x) => x.current);
+
+							return [
+								'%d'.format(w.channel) + (w.current ? ' ' + _('(current)') : ''),
+								'%d MHz'.format(w.width), E('strong', fmtCap(w.capacity)),
+								(cur?.capacity > 0 && w.capacity != null) ? fmtGain(w.capacity / cur.capacity - 1) : '-',
+								'%d'.format(w.samples)
+							];
+						}), _('No data yet'))
+				]) : '',
 				E('details', { 'data-key': rid, 'style': 'margin-bottom:1.5em' }, [
 					E('summary', _('Neighbor networks (%d)').format(neigh.length)),
 					table([ _('SSID'), _('BSSID'), _('Channel'), _('Width'), _('Signal') ], neigh, _('No neighbors seen'))

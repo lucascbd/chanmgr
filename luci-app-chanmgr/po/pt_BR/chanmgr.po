@@ -12,6 +12,12 @@ msgstr "\"%s\" está configurado"
 msgid "\"%s\" is configured. Use it, with its password, when adding this access point as a node on the router."
 msgstr "\"%s\" está configurado. Use-o, com a senha, ao adicionar este access point como nó no router."
 
+msgid "%d samples, %.1f of %d days"
+msgstr "%d amostras, %.1f de %d dias"
+
+msgid "%d samples, ready"
+msgstr "%d amostras, pronto"
+
 msgid "(current)"
 msgstr "(atual)"
 
@@ -20,6 +26,9 @@ msgstr "(planejado)"
 
 msgid "2.4 GHz channels"
 msgstr "Canais de 2,4 GHz"
+
+msgid "5 GHz widths to compare"
+msgstr "Larguras de 5 GHz a comparar"
 
 msgid "A neighbor received at this level costs 1.0; every +10 dB multiplies the cost by 10."
 msgstr "Um vizinho recebido neste nível custa 1,0; cada +10 dB multiplica o custo por 10."
@@ -38,6 +47,9 @@ msgstr "Avançado"
 
 msgid "Allow DFS channels"
 msgstr "Permitir canais DFS"
+
+msgid "Analysis only for now: the status page estimates, for each 5 GHz channel and width, how much your devices could transmit, from measurements accumulated over several days. Channel widths are never changed yet."
+msgstr "Por enquanto só análise: a página de status estima, para cada canal e largura de 5 GHz, quanto os seus aparelhos conseguiriam transmitir, com medidas acumuladas ao longo de vários dias. A largura dos canais ainda nunca é alterada."
 
 msgid "Applied"
 msgstr "Aplicado"
@@ -69,11 +81,20 @@ msgstr "Beacons que anunciam a troca de canal antes que ela aconteça."
 msgid "Best channels"
 msgstr "Melhores canais"
 
+msgid "Best option"
+msgstr "Melhor opção"
+
 msgid "CSA beacon count"
 msgstr "Contagem de beacons do CSA"
 
 msgid "Candidate channels in the 2.4 GHz band. Only non-overlapping channels are recommended."
 msgstr "Canais candidatos na faixa de 2,4 GHz. Recomenda-se usar só canais sem sobreposição."
+
+msgid "Capacity"
+msgstr "Capacidade"
+
+msgid "Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. Nothing is changed; widths are only analysed until enough days of measurements are collected."
+msgstr "Capacidade: quanto os aparelhos conseguiriam transmitir, onde 1,00 é um canal de 20 MHz totalmente livre e um canal de 80 MHz livre vale 4,00. Nada é alterado; as larguras só são analisadas até juntar dias suficientes de medidas."
 
 msgid "Change recommended"
 msgstr "Troca recomendada"
@@ -92,6 +113,15 @@ msgstr "Grupos de canal"
 
 msgid "Channel switch announcement (experimental)"
 msgstr "Anúncio de troca de canal (experimental)"
+
+msgid "Channel width"
+msgstr "Largura de canal"
+
+msgid "Channel width (analysis only)"
+msgstr "Largura de canal (só análise)"
+
+msgid "Channel width estimate"
+msgstr "Estimativa por largura de canal"
 
 msgid "Channels 52–144 need a silent channel availability check (1 to 10 minutes) and must be left when radar is detected."
 msgstr "Os canais 52–144 exigem uma verificação de disponibilidade silenciosa (de 1 a 10 minutos) e precisam ser abandonados quando um radar é detectado."
@@ -114,8 +144,17 @@ msgstr "Custo somado por um canal totalmente ocupado, em comparação com um viz
 msgid "Could not save the login: %s"
 msgstr "Não foi possível salvar o login: %s"
 
+msgid "Current"
+msgstr "Atual"
+
 msgid "Current channel"
 msgstr "Canal atual"
+
+msgid "Data"
+msgstr "Dados"
+
+msgid "Days of measurements"
+msgstr "Dias de medidas"
 
 msgid "Decision"
 msgstr "Decisão"
@@ -159,6 +198,9 @@ msgstr "Falhou"
 msgid "Falls back to \"wifi reload\", which disconnects all clients of the node."
 msgstr "Recorre a \"wifi reload\", que desconecta todos os clientes do nó."
 
+msgid "Gain"
+msgstr "Ganho"
+
 msgid "General"
 msgstr "Geral"
 
@@ -173,6 +215,9 @@ msgstr "Host"
 
 msgid "Host name"
 msgstr "Nome do host"
+
+msgid "How many days of scans an estimate needs before it is considered reliable."
+msgstr "Quantos dias de varreduras uma estimativa precisa para ser considerada confiável."
 
 msgid "Interfaces"
 msgstr "Interfaces"
@@ -254,6 +299,9 @@ msgstr "Nenhuma troca ainda"
 
 msgid "No data"
 msgstr "Sem dados"
+
+msgid "No data yet"
+msgstr "Ainda sem dados"
 
 msgid "No evaluation yet. Press \"Evaluate now\" or wait for the next scheduled run."
 msgstr "Nenhuma avaliação ainda. Clique em \"Avaliar agora\" ou aguarde a próxima execução agendada."
@@ -420,6 +468,9 @@ msgstr "Trocando"
 msgid "Switching radios with mesh"
 msgstr "Troca em rádios com mesh"
 
+msgid "The width configured on the radio is always included."
+msgstr "A largura configurada no rádio é sempre incluída."
+
 msgid "This device is an access point managed by a router running chanmgr. The router decides the channels; this page shows what it changed here."
 msgstr "Este dispositivo é um access point gerenciado por um router com chanmgr. O router decide os canais; esta página mostra o que ele mudou aqui."
 
@@ -530,6 +581,9 @@ msgstr "este dispositivo"
 
 msgid "utilization %s"
 msgstr "utilização %s"
+
+msgid "vs current"
+msgstr "vs atual"
 
 msgid "waiting for the mesh"
 msgstr "esperando o mesh"

@@ -61,6 +61,25 @@ For each pair of own access points in different units, the plan adds
 `own_weight × overlap × weight(rssi they hear each other at)`. The plan
 minimizes the total over all radios of a band.
 
+### Channel width (analysis only)
+
+Interference alone always favours narrow channels, so widths are compared by
+estimated **capacity** instead, in units of one free 20 MHz channel. A
+transmission uses a width only when every 20 MHz subchannel of that block
+(built around the primary) is free, otherwise it falls back to a narrower one:
+
+```
+capacity = P(20 free) + P(40 free) + 2 * P(80 free) + 4 * P(160 free)
+```
+
+where P(40 free) is the product of the free airtime of the primary and its
+secondary 20 MHz channel, and so on. The busy fraction of each channel is the
+mean of one survey sample per evaluation over the last `history_days` (3), so
+a channel seen busy during one short scan does not decide alone. The status
+page shows, per 5 GHz radio and group, the capacity of each option for the
+widths in `widths_5g` (40 and 80), the gain against the current one and how
+many days of data back it. Widths are never changed yet.
+
 Radios that must share a channel (802.11s mesh, batman-adv fallback links) go
 into a **group**, and the group is planned and switched as a single unit. A radio
 with a mesh interface that is not in a group is **locked**: the plan measures it
@@ -163,6 +182,8 @@ chanmgr agent info | survey | scan <radio>
 | `min_switch_interval` | `86400` | seconds before a radio may move again |
 | `allow_dfs` | `0` | consider channels 52–144 |
 | `channels_2g` | `1 6 11` | 2.4 GHz candidates |
+| `widths_5g` | `40 80` | 5 GHz widths compared in the width analysis |
+| `history_days` | `3` | days of scan data before a width estimate is reliable |
 | `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |
 | `bcn_count` | `10` | CSA beacon count |
 | `reload_fallback` | `0` | `wifi reload` if CSA fails (disconnects clients) |
