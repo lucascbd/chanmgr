@@ -117,7 +117,7 @@ return view.extend({
 		s = routerOnly(m.section(form.NamedSection, 'main', 'chanmgr', _('Router settings')));
 		s.tab('general', _('General'));
 		s.tab('decision', _('Decision'));
-		s.tab('width', _('Channel width'));
+		s.tab('width', _('Channel Width'));
 		s.tab('advanced', _('Advanced'));
 
 		o = s.taboption('general', form.Flag, 'enabled', _('Enable scheduler'),
