@@ -489,7 +489,7 @@ function record(st, model, band, p, d) {
 function node_call(handles, rid, method, args, timeout) {
 	let nr = split(rid, '/');
 	let h = handles[nr[0]];
-	let r = h ? h.call(method, { radio: nr[1], ...args }, timeout) : { error: 'node not configured' };
+	let r = h ? h.call(method, { radio: nr[1], ...(args ?? {}) }, timeout) : { error: 'node not configured' };
 
 	return r.error ? { ok: false, errors: [ r.error ] } : r.data;
 }
@@ -882,7 +882,7 @@ function next_slot(cfg, now) {
 function heartbeat(cfg, extra) {
 	fs.mkdir(RUN_DIR, 0700);
 	fs.writefile(RUN_DIR + '/daemon.json', sprintf('%J', {
-		pid: +fs.readlink('/proc/self'), ts: time(), next_eval: next_slot(cfg, time()), ...extra
+		pid: +fs.readlink('/proc/self'), ts: time(), next_eval: next_slot(cfg, time()), ...(extra ?? {})
 	}));
 }
 
@@ -919,40 +919,46 @@ function status() {
 	return st;
 }
 
+// One round of the service loop. ctx: { last_sample, failed }
+function daemon_tick(ctx) {
+	let cfg = config(), now = time();
+	let slot = due_slot(cfg, now, load_state().last_eval);
+
+	heartbeat(cfg);
+
+	if (slot && !ctx.failed[slot.ts]) {
+		log('info', 'scheduled evaluation (%s)', slot.name);
+		heartbeat(cfg, { busy: 'evaluate' });
+
+		let r = evaluate();
+
+		// another operation held the lock: try again on the next round;
+		// an evaluation that failed is not retried for this slot
+		if (r?.error)
+			log('warn', 'scheduled evaluation postponed: %s', r.error);
+		else if (!r?.ok)
+			ctx.failed[slot.ts] = true;
+
+		ctx.last_sample = time();
+	}
+	else if (now - ctx.last_sample >= cfg.sample_interval) {
+		sample();
+		ctx.last_sample = now;
+	}
+
+	return ctx;
+}
+
 // Long-running service loop (procd).
 function daemon() {
-	let last_sample = 0, failed = {};
+	let ctx = { last_sample: 0, failed: {} };
 
 	log('info', 'scheduler started, evaluations at %s', join(' ', config().eval_times));
 
 	while (true) {
-		let cfg = config(), now = time();
-		let slot = due_slot(cfg, now, load_state().last_eval);
-
-		heartbeat(cfg);
-
-		if (slot && !failed[slot.ts]) {
-			log('info', 'scheduled evaluation (%s)', slot.name);
-			heartbeat(cfg, { busy: 'evaluate' });
-
-			let r = evaluate();
-
-			// another operation held the lock: try again on the next round;
-			// an evaluation that failed is not retried for this slot
-			if (r?.error)
-				log('warn', 'scheduled evaluation postponed: %s', r.error);
-			else if (!r?.ok)
-				failed[slot.ts] = true;
-
-			last_sample = time();
-		}
-		else if (now - last_sample >= cfg.sample_interval) {
-			sample();
-			last_sample = now;
-		}
-
+		daemon_tick(ctx);
 		sleep(20000);
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick };

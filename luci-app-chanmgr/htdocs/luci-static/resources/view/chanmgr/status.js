@@ -233,7 +233,7 @@ return view.extend({
 
 			out.push(E('div', { 'class': 'cbi-section' }, [
 				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
-				E('h4', _('Best channels')),
+				E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Cost'), _('Neighbors'), _('Utilization'), _('Own APs') ], costs, _('No data')),
 				E('details', { 'data-key': rid, 'style': 'margin-bottom:1.5em' }, [
 					E('summary', _('Neighbor networks (%d)').format(neigh.length)),
