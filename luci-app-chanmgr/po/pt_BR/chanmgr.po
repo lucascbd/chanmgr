@@ -602,3 +602,6 @@ msgstr "voltou ao canal anterior"
 
 msgid "went back or failed"
 msgstr "voltou ou falhou"
+
+msgid "Channel Width"
+msgstr "Largura de Canal"

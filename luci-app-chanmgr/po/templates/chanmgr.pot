@@ -829,3 +829,7 @@ msgstr ""
 #: htdocs/luci-static/resources/view/chanmgr/status.js:135
 msgid "went back or failed"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/chanmgr/config.js
+msgid "Channel Width"
+msgstr ""
