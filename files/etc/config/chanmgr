@@ -21,6 +21,9 @@ config chanmgr 'main'
 	option ref_rssi '-70'
 	option bcn_count '10'
 	option reload_fallback '0'
+	# keep history and measurements across reboots in /etc/chanmgr
+	# (written after evaluations and switches only)
+	option keep_history '1'
 	# radios with a mesh interface: reload (guarded restart) or csa
 	option mesh_method 'reload'
 	# guarded restart: nodes go back on their own unless their mesh peers

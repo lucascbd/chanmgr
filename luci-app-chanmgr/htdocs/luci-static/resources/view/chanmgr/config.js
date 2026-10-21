@@ -232,6 +232,10 @@ return view.extend({
 		o.placeholder = '240';
 		o.depends('mesh_method', 'reload');
 
+		o = s.taboption('advanced', form.Flag, 'keep_history', _('Keep history across reboots'),
+			_('Stores the change history, the plans and the channel measurements in /etc/chanmgr after each evaluation or switch (a few small writes a day), and keeps them on sysupgrade.'));
+		o.default = o.enabled;
+
 		o = s.taboption('advanced', form.Flag, 'reload_fallback', _('Reload Wi-Fi if CSA fails'),
 			_('Falls back to "wifi reload", which disconnects all clients of the node.'));
 

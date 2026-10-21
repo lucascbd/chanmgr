@@ -81,4 +81,26 @@ return function(t) {
 		ctl.sample_into(st2, { nodes: [ { name: 'x', h: { call: () => replies[i] } } ] });
 
 	t.near(st2.util['x/radio1'].value, (500 - 300) / 1000.0, 'sampling: own clients rx excluded');
+
+	// history survives a reboot: /tmp is empty, the copy in /etc is used
+	let fs = require('fs'), run = getenv('CHANMGR_RUN_DIR'), keep = getenv('CHANMGR_PERSIST_DIR');
+
+	uci.data.chanmgr = { main: { '.type': 'chanmgr', mode: 'recommend', scan_gap: '0' }, local: { '.type': 'node' } };
+	ctl.evaluate({ apply: false });
+
+	let before = ctl.status();
+	t.ok(fs.stat(keep + '/state.json'), 'persist: copy written after an evaluation');
+	t.eq(json(fs.readfile(keep + '/state.json')).util, null, 'persist: utilization counters not kept');
+
+	fs.unlink(run + '/state.json');   // reboot
+	let after = ctl.status();
+	t.eq([ length(after.history), after.last_eval ], [ length(before.history), before.last_eval ], 'persist: history back after reboot');
+
+	let mtime = fs.stat(keep + '/state.json').mtime;
+	ctl.sample();
+	t.eq(fs.stat(keep + '/state.json').mtime, mtime, 'persist: samples do not write the flash');
+
+	uci.data.chanmgr.main.keep_history = '0';
+	ctl.evaluate({ apply: false });
+	t.ok(!fs.stat(keep + '/state.json'), 'persist: copy removed when keep_history is off');
 };

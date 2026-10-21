@@ -197,6 +197,7 @@ chanmgr agent info | survey | scan <radio>
 | `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |
 | `bcn_count` | `10` | CSA beacon count |
 | `reload_fallback` | `0` | `wifi reload` if CSA fails (disconnects clients) |
+| `keep_history` | `1` | keep history, plans and channel measurements in `/etc/chanmgr` across reboots and sysupgrade (written after evaluations and switches only) |
 | `mesh_method` | `reload` | radios with a mesh interface: `reload` (restart on the new channel) or `csa` (experimental) |
 
 Each `config node` takes `host`, `port`, `https`, `insecure`, `username`,

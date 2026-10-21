@@ -14,6 +14,10 @@ let guard = require('chanmgr.guard');
 
 const RUN_DIR = getenv('CHANMGR_RUN_DIR') ?? '/tmp/chanmgr';
 const STATE_FILE = RUN_DIR + '/state.json';
+// copy kept across reboots, written after evaluations and switches only (a
+// few times a day, not on every 5 min sample) to spare the flash
+const PERSIST_DIR = getenv('CHANMGR_PERSIST_DIR') ?? '/etc/chanmgr';
+const PERSIST_FILE = PERSIST_DIR + '/state.json';
 const LOCK_DIR = RUN_DIR + '/lock';
 const HISTORY_MAX = 50;
 
@@ -57,6 +61,7 @@ function config() {
 		ref_rssi: n(m.ref_rssi, -70),
 		bcn_count: n(m.bcn_count, 10),
 		reload_fallback: m.reload_fallback == '1',
+		keep_history: m.keep_history != '0',
 		// radios with a mesh interface: "reload" restarts them on the new
 		// channel; "csa" (experimental) announces the switch like for APs
 		mesh_method: (m.mesh_method == 'csa') ? 'csa' : 'reload',
@@ -108,15 +113,18 @@ function config() {
 
 /* --- state & locking ---------------------------------------------------- */
 
-function load_state() {
-	let s;
-
+function read_json(file) {
 	try {
-		s = json(fs.readfile(STATE_FILE) ?? '{}');
+		return json(fs.readfile(file) ?? 'null');
 	}
 	catch (e) {
-		s = {};
+		return null;
 	}
+}
+
+// After a reboot /tmp is empty: start from the copy in PERSIST_DIR.
+function load_state() {
+	let s = read_json(STATE_FILE) ?? read_json(PERSIST_FILE) ?? {};
 
 	s.nodes ??= {};
 	s.radios ??= {};
@@ -129,11 +137,25 @@ function load_state() {
 	return s;
 }
 
-function save_state(s) {
+// persist: also write the copy kept across reboots (true), drop it (false,
+// keep_history off) or leave it alone (null).
+function save_state(s, persist) {
 	fs.mkdir(RUN_DIR, 0700);
 	s.updated = time();
 	fs.writefile(STATE_FILE + '.tmp', sprintf('%J', s));
 	fs.rename(STATE_FILE + '.tmp', STATE_FILE);
+
+	if (persist == false)
+		fs.unlink(PERSIST_FILE);
+	else if (persist) {
+		// utilization counters are meaningless after a reboot
+		let keep = { ...s };
+
+		delete keep.util;
+		fs.mkdir(PERSIST_DIR, 0755);
+		fs.writefile(PERSIST_FILE + '.tmp', sprintf('%J', keep));
+		fs.rename(PERSIST_FILE + '.tmp', PERSIST_FILE);
+	}
 }
 
 function lock(what) {
@@ -1009,7 +1031,7 @@ function evaluate(opts) {
 		st.last_error = e.message;
 	}
 
-	save_state(st);
+	save_state(st, cfg.keep_history);
 	unlock();
 
 	return { ok: !st.last_error, plans: st.plans };
@@ -1028,7 +1050,7 @@ function apply(only_band) {
 			ok = apply_band(cfg, st, band) && ok;
 
 	discover(cfg, st);
-	save_state(st);
+	save_state(st, cfg.keep_history);
 	unlock();
 
 	return { ok };

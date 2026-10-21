@@ -88,4 +88,12 @@ return function(t) {
 	agent.persist('radio1', 149, 80);
 	t.eq(uci.data.wireless.radio1.htmode, 'HE80', 'agent: unchanged width left alone');
 	uci.data.wireless.radio1.htmode = 'HE20';
+
+	// changes are kept across reboots, unless keep_history is off
+	let keep = getenv('CHANMGR_PERSIST_DIR');
+
+	t.ok(require('fs').stat(keep + '/changes.json'), 'agent: changes stored in the persistent dir');
+	uci.data.chanmgr = { main: { '.type': 'chanmgr', keep_history: '0' } };
+	t.eq(agent.changes(), [], 'agent: keep_history off reads from /tmp');
+	delete uci.data.chanmgr;
 };

@@ -63,6 +63,8 @@ define Package/chanmgr/install
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/etc/config/chanmgr $(1)/etc/config/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/etc/init.d/chanmgr $(1)/etc/init.d/
+	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/files/lib/upgrade/keep.d/chanmgr $(1)/lib/upgrade/keep.d/
 endef
 
 define Package/chanmgr/postinst
