@@ -61,7 +61,7 @@ function set_state(radio, st, state, msg) {
 	if (FINAL[state] && st.to != null)
 		agent.note(radio, {
 			from: st.from, from_width: st.from_width, to: st.to, width: st.width,
-			ok: state == 'done', how: 'guarded', msg: (state == 'done') ? null : st.msg
+			ok: state == 'done', how: 'guarded', msg: st.msg
 		});
 	system([ 'logger', '-t', 'chanmgr', '-p', 'daemon.notice', sprintf('%s: guard %s%s', radio, state, msg ? ': ' + msg : '') ]);
 }
@@ -149,10 +149,13 @@ function run(args) {
 	sleep(opt(args, 'delay', 5) * 1000);
 	apply_channel(radio, to.channel, to.width);
 
+	let t0 = time();
 	let w = wait_for(radio, on(to.freq, to.width), up_timeout);
 
 	if (w != 'ok')
 		return rollback((w == 'abort') ? 'aborted by the controller' : 'radio did not come up on channel ' + to.channel);
+
+	let steps = [ sprintf('radio up after %d s', time() - t0) ];
 
 	if (st.peers_before > 0) {
 		set_state(radio, st, 'waiting_mesh');
@@ -160,6 +163,8 @@ function run(args) {
 
 		if (w != 'ok')
 			return rollback((w == 'abort') ? 'aborted by the controller' : 'mesh peers did not come back');
+
+		push(steps, sprintf('mesh back after %d s', time() - t0));
 	}
 
 	if (confirm_timeout > 0) {
@@ -170,8 +175,9 @@ function run(args) {
 			return rollback((w == 'abort') ? 'aborted by the controller' : 'no confirmation from the controller');
 	}
 
+	push(steps, (confirm_timeout > 0) ? 'confirmed by the router' : 'confirmed locally');
 	fs.unlink(pending_path(radio));
-	set_state(radio, st, 'confirmed');
+	set_state(radio, st, 'confirmed', join(', ', steps));
 
 	// keep watching the mesh for a while: if this device ended up alone on
 	// the new channel (its peer went back), follow the peer back

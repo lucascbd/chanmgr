@@ -324,7 +324,8 @@ function switch_channel(args) {
 	if (args.nowait && res.ok)
 		pending[args.radio] = entry;
 	else
-		note(args.radio, { ...entry, ok: res.ok, msg: join('; ', res.errors ?? (res.error ? [ res.error ] : [])) });
+		note(args.radio, { ...entry, ok: res.ok, msg: join('; ', res.errors ?? (res.error ? [ res.error ] : []))
+			|| ((entry.how == 'csa') ? 'clients followed the switch announcement' : 'radio restarted on the new channel') });
 
 	return res;
 }
@@ -342,7 +343,8 @@ function confirm(args) {
 	if (ok)
 		persist(args.radio, +args.channel, +(args.width || 0));
 
-	note(args.radio, { ...(pending[args.radio] ?? { to: +args.channel, width: +(args.width || 0) }), ok, how: 'group' });
+	note(args.radio, { ...(pending[args.radio] ?? { to: +args.channel, width: +(args.width || 0) }), ok, how: 'group',
+		msg: ok ? 'on the new channel together with the group' : 'not on the new channel' });
 	delete pending[args.radio];
 
 	return { ok };

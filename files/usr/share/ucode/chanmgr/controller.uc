@@ -693,7 +693,7 @@ function switch_one(cfg, st, handles, rid, from, to) {
 		bcn_count: cfg.bcn_count, reload_fallback: cfg.reload_fallback
 	}, 180);
 
-	add_history(st, { rid, from: from?.channel, to: to.channel, width: to.width, ok: res.ok, msg: join('; ', res.errors ?? []) });
+	add_history(st, { rid, from: from?.channel, from_width: from?.width, to: to.channel, width: to.width, ok: res.ok, msg: join('; ', res.errors ?? []) });
 
 	if (!res.ok)
 		log('err', '%s: switch to channel %d failed: %s', rid, to.channel, join('; ', res.errors ?? []));
@@ -726,7 +726,7 @@ function switch_guarded(cfg, st, handles, id, rids, from, to) {
 			for (let s in started)
 				node_call(handles, s, 'guard_abort', {}, 10);
 
-			add_history(st, { rid, from: from?.channel, to: to.channel, width: to.width, ok: false, msg: 'not started: ' + why });
+			add_history(st, { rid, from: from?.channel, from_width: from?.width, to: to.channel, width: to.width, ok: false, msg: 'not started: ' + why });
 
 			return false;
 		}
@@ -781,8 +781,9 @@ function switch_guarded(cfg, st, handles, id, rids, from, to) {
 
 	for (let rid in rids)
 		add_history(st, {
-			rid, from: from?.channel, to: to.channel, width: to.width, ok,
-			msg: ok ? 'guarded switch' : sprintf('%s%s', state[rid] ?? 'unreachable', msg[rid] ? ': ' + msg[rid] : '')
+			rid, from: from?.channel, from_width: from?.width, to: to.channel, width: to.width, ok,
+			msg: ok ? 'guarded switch' + (msg[rid] ? ': ' + msg[rid] : '')
+				: sprintf('%s%s', state[rid] ?? 'unreachable', msg[rid] ? ': ' + msg[rid] : '')
 		});
 
 	if (!ok && !all((s) => guard.FINAL[s]))
@@ -800,7 +801,7 @@ function switch_group(cfg, st, handles, u) {
 
 	if (err) {
 		log('err', '%s: %s', u.id, err);
-		add_history(st, { rid: u.id, from: u.current?.channel, to: u.best.channel, width: u.best.width, ok: false, msg: err });
+		add_history(st, { rid: u.id, from: u.current?.channel, from_width: u.current?.width, to: u.best.channel, width: u.best.width, ok: false, msg: err });
 
 		return false;
 	}
@@ -838,7 +839,7 @@ function switch_group(cfg, st, handles, u) {
 
 	for (let rid in u.radios)
 		add_history(st, {
-			rid, from: u.current?.channel, to: u.best.channel, width: u.best.width, ok: r.results[rid],
+			rid, from: u.current?.channel, from_width: u.current?.width, to: u.best.channel, width: u.best.width, ok: r.results[rid],
 			msg: r.results[rid] ? 'group ' + u.id : 'not on the new channel after the switch'
 		});
 
@@ -852,7 +853,7 @@ function switch_group(cfg, st, handles, u) {
 
 	for (let rid in u.radios)
 		add_history(st, {
-			rid, from: u.best.channel, to: u.current.channel, width: u.current.width, ok: back.results[rid],
+			rid, from: u.best.channel, from_width: u.best.width, to: u.current.channel, width: u.current.width, ok: back.results[rid],
 			msg: back.results[rid] ? 'rollback, group ' + u.id : 'ROLLBACK FAILED, check this radio'
 		});
 
@@ -1106,8 +1107,7 @@ function scheduler() {
 		mode: cfg.mode,
 		eval_times: cfg.eval_times,
 		running: !!(d?.pid && fs.stat('/proc/' + d.pid)),
-		next_eval: d?.next_eval ?? next_slot(cfg, time()),
-		heartbeat: d?.ts
+		next_eval: d?.next_eval ?? next_slot(cfg, time())
 	};
 }
 

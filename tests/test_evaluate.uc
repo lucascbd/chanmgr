@@ -46,6 +46,8 @@ return function(t) {
 
 	st = ctl.status();
 	t.eq(length(st.history), 2, 'history: 2 switches');
+	t.eq([ st.history[0].from_width, st.history[0].width ], [ 80, 80 ], 'history: previous and new width');
+	t.eq(st.scheduler.heartbeat, null, 'status: no heartbeat timestamp (would force redraws)');
 	t.ok(st.last_switch['local/radio1'] > 0, 'last_switch recorded');
 
 	// apply mode: neighbor moves onto our new channel, but we just switched

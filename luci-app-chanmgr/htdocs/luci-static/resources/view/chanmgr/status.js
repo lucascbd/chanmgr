@@ -75,6 +75,31 @@ function fmtData(o, days) {
 		: _('%d samples, %.1f of %d days').format(o.samples, o.days, days);
 }
 
+// Width column of a change: "40 → 80 MHz" when it changed
+function fmtWidth(c) {
+	if (!c.width)
+		return '-';
+
+	return (c.from_width && c.from_width != c.width)
+		? '%d → %d MHz'.format(c.from_width, c.width)
+		: '%d MHz'.format(c.width);
+}
+
+// Elements that scroll the page: the window, and on some (mobile) themes a
+// container element instead.
+function scrollers(el) {
+	const res = [];
+
+	for (let e = el.parentElement; e; e = e.parentElement) {
+		const oy = getComputedStyle(e).overflowY;
+
+		if ((oy == 'auto' || oy == 'scroll') && e.scrollHeight > e.clientHeight)
+			res.push(e);
+	}
+
+	return res;
+}
+
 function warnText(text) {
 	return E('span', { 'style': 'color:#c00' }, text);
 }
@@ -130,7 +155,7 @@ return view.extend({
 		const changes = ap.changes ?? [];
 		const how = { csa: _('switch announcement'), restart: _('radio restart'), guarded: _('guarded restart'), group: _('group switch') };
 		const fmtChange = (c) => c ? E([], [
-			'%s → %s%s'.format(c.from ?? '?', c.to, c.width ? ' (%d MHz)'.format(c.width) : ''),
+			'%s → %s · %s'.format(c.from ?? '?', c.to, fmtWidth(c)),
 			E('div', { 'style': 'font-size:90%' }, [
 				fmtTime(c.ts), ' · ', c.ok ? _('ok') : warnText(_('went back or failed')), c.msg ? ' – ' + c.msg : ''
 			])
@@ -151,7 +176,7 @@ return view.extend({
 			rows.push([ radio, '-', warnText(_('down')), info.down[radio], fmtChange(changes.find((c) => c.radio == radio)) ]);
 
 		const hist = changes.map((c) => [
-			fmtTime(c.ts), c.radio, '%s → %s'.format(c.from ?? '?', c.to), c.width ? '%d MHz'.format(c.width) : '-',
+			fmtTime(c.ts), c.radio, '%s → %s'.format(c.from ?? '?', c.to), fmtWidth(c),
 			how[c.how] ?? c.how ?? '-', c.ok ? _('ok') : warnText(_('failed')), c.msg || ''
 		]);
 
@@ -299,8 +324,8 @@ return view.extend({
 
 	renderHistory(st) {
 		const rows = (st.history ?? []).map((h) => [
-			fmtTime(h.ts), h.rid, '%s → %s'.format(h.from ?? '?', h.to), h.width ? '%d MHz'.format(h.width) : '-',
-			h.ok ? _('ok') : E('span', { 'style': 'color:red' }, _('failed')), h.msg || ''
+			fmtTime(h.ts), h.rid, '%s → %s'.format(h.from ?? '?', h.to), fmtWidth(h),
+			h.ok ? _('ok') : warnText(_('failed')), h.msg || ''
 		]);
 
 		return E('div', { 'class': 'cbi-section' }, [
@@ -317,29 +342,43 @@ return view.extend({
 		]);
 	},
 
-	update(root, st) {
-		// polling: only redraw when something changed, and keep the scroll
-		// position and the expanded neighbor lists
-		const json = JSON.stringify(st);
+	// Polling: redraw only when the data changed, without moving the page.
+	// The old height is kept while swapping the content, so the browser never
+	// clamps the scroll position, and every scrolling element is restored.
+	redraw(root, data, build) {
+		const json = JSON.stringify(data);
 
-		if (json == this.lastState)
+		if (json == root.chanmgrLast)
 			return;
 
-		this.lastState = json;
+		root.chanmgrLast = json;
 
-		const scroll = window.scrollY;
 		const open = new Set(Array.from(root.querySelectorAll('details[open]'), (d) => d.dataset.key));
+		const saved = scrollers(root).map((e) => [ e, e.scrollTop ]);
+		const x = window.scrollX, y = window.scrollY;
 
-		dom.content(root, [
+		root.style.minHeight = root.offsetHeight + 'px';
+		dom.content(root, build());
+		root.querySelectorAll('details').forEach((d) => d.open = open.has(d.dataset.key));
+
+		// touch only what moved: setting the position would also stop a
+		// finger scroll that is still gliding
+		saved.forEach(([ e, top ]) => { if (e.scrollTop != top) e.scrollTop = top; });
+
+		if (window.scrollX != x || window.scrollY != y)
+			window.scrollTo(x, y);
+
+		requestAnimationFrame(() => root.style.minHeight = '');
+	},
+
+	update(root, st) {
+		this.redraw(root, st, () => [
 			this.renderSummary(st),
 			...this.renderPlans(st),
 			...this.renderRadios(st),
 			this.renderHistory(st),
 			this.renderLog(st)
 		]);
-
-		root.querySelectorAll('details').forEach((d) => d.open = open.has(d.dataset.key));
-		window.scrollTo(window.scrollX, scroll);
 	},
 
 	handleEvaluate(ev) {
@@ -363,9 +402,10 @@ return view.extend({
 
 	render(st) {
 		if (st.ap) {
-			const root = E('div', {}, this.renderAp(st.ap));
+			const root = E('div');
 
-			poll.add(() => callLocal().then((ap) => dom.content(root, this.renderAp(ap))), 10);
+			this.redraw(root, st.ap, () => this.renderAp(st.ap));
+			poll.add(() => callLocal().then((ap) => this.redraw(root, ap, () => this.renderAp(ap))), 10);
 
 			return root;
 		}

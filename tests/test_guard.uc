@@ -42,6 +42,8 @@ return function(t) {
 	t.eq(guard.status('radio1').state, 'done', 'guard: status file');
 	let gc = agent.changes()[0];
 	t.eq([ gc.from, gc.to, gc.ok, gc.how ], [ 36, 149, true, 'guarded' ], 'guard: change noted');
+	t.ok(match(gc.msg ?? '', /^radio up after [0-9]+ s, mesh back after [0-9]+ s, confirmed locally$/), 'guard: success details (' + gc.msg + ')');
+	t.eq(gc.from_width, 20, 'guard: previous width noted');
 
 	// radio does not come up on the new channel
 	reset('down\n5180 1\n');
