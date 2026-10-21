@@ -15,13 +15,7 @@ let chan = require('chanmgr.chan');
 let parse = require('chanmgr.parse');
 
 // the list of changes made here survives reboots (a write per change)
-// unless keep_history is off
 const PERSIST_DIR = getenv('CHANMGR_PERSIST_DIR') ?? '/etc/chanmgr';
-const RUN_DIR = getenv('CHANMGR_RUN_DIR') ?? '/tmp/chanmgr';
-
-function changes_dir() {
-	return (uci.cursor().get('chanmgr', 'main', 'keep_history') == '0') ? RUN_DIR : PERSIST_DIR;
-}
 const CHANGES_MAX = 30;
 
 let conn;
@@ -225,7 +219,7 @@ function persist(radio, channel, width) {
 // page).
 function changes() {
 	try {
-		return json(fs.readfile(changes_dir() + '/changes.json') ?? '[]') ?? [];
+		return json(fs.readfile(PERSIST_DIR + '/changes.json') ?? '[]') ?? [];
 	}
 	catch (e) {
 		return [];
@@ -236,11 +230,14 @@ function note(radio, entry) {
 	let list = changes();
 
 	unshift(list, { ts: time(), radio, ...entry });
-	let dir = changes_dir();
+	fs.mkdir(PERSIST_DIR, 0755);
+	fs.writefile(PERSIST_DIR + '/changes.json.tmp', sprintf('%J', slice(list, 0, CHANGES_MAX)));
+	fs.rename(PERSIST_DIR + '/changes.json.tmp', PERSIST_DIR + '/changes.json');
+}
 
-	fs.mkdir(dir, 0755);
-	fs.writefile(dir + '/changes.json.tmp', sprintf('%J', slice(list, 0, CHANGES_MAX)));
-	fs.rename(dir + '/changes.json.tmp', dir + '/changes.json');
+// "Clear history" on the status page
+function clear_changes() {
+	fs.unlink(PERSIST_DIR + '/changes.json');
 }
 
 // Switch a radio.
@@ -360,4 +357,4 @@ function confirm(args) {
 	return { ok };
 }
 
-return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, running_on, mesh_peers, changes, note };
+return { info, survey, scan, switch_channel, confirm, verify, persist, current_freq, running_on, mesh_peers, changes, note, clear_changes };

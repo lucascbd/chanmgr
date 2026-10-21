@@ -18,6 +18,7 @@ function usage() {
 		'  evaluate [--apply|--dry-run] [--no-gap]\n' +
 		'                          Scan, plan and (in apply mode) switch\n' +
 		'  apply [2g|5g]           Apply the latest plan now, ignoring hysteresis\n' +
+		'  clear-history           Forget change history, measurements and plans\n' +
 		'  daemon                  Run the scheduler (used by the init script)\n' +
 		'  agent info|survey       Local agent queries\n' +
 		'  agent scan <radio>\n' +
@@ -85,6 +86,10 @@ case 'evaluate':
 
 case 'apply':
 	out(ctl.apply(args[0]));
+	break;
+
+case 'clear-history':
+	out(ctl.clear_history());
 	break;
 
 case 'daemon':

@@ -8,6 +8,7 @@ function reset_state() {
 	let fs = require('fs');
 
 	fs.unlink(getenv('CHANMGR_RUN_DIR') + '/state.json');
+	fs.unlink(getenv('CHANMGR_PERSIST_DIR') + '/state.json');
 }
 
 return function(t) {
@@ -100,7 +101,14 @@ return function(t) {
 	ctl.sample();
 	t.eq(fs.stat(keep + '/state.json').mtime, mtime, 'persist: samples do not write the flash');
 
-	uci.data.chanmgr.main.keep_history = '0';
-	ctl.evaluate({ apply: false });
-	t.ok(!fs.stat(keep + '/state.json'), 'persist: copy removed when keep_history is off');
+	// "Clear history": history, measurements and plans go, the 24 h hold stays
+	after = ctl.status();
+	let held = after.last_switch;
+	t.ok(length(after.history) > 0, 'clear: there is history to clear');
+	t.eq(ctl.clear_history(), { ok: true }, 'clear: done');
+
+	let cleared = ctl.status(), saved = json(fs.readfile(keep + '/state.json'));
+	t.eq([ cleared.history, cleared.plans, cleared.radios ], [ [], {}, {} ], 'clear: history and plans gone');
+	t.eq([ saved.history, saved.chanstats ], [ [], {} ], 'clear: persistent copy cleared too');
+	t.eq(cleared.last_switch, held, 'clear: 24 h hold kept');
 };

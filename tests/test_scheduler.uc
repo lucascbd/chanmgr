@@ -33,6 +33,7 @@ return function(t) {
 		local: { '.type': 'node' }
 	};
 	fs.unlink(run + '/state.json');
+	fs.unlink(getenv('CHANMGR_PERSIST_DIR') + '/state.json');
 
 	let ctx = ctl.daemon_tick({ last_sample: 0, failed: {} });
 	let hb = json(fs.readfile(run + '/daemon.json') ?? 'null');

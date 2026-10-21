@@ -168,10 +168,19 @@ iw dev phy1-ap0 info
 If that works on every access point, set `option mode 'apply'` and
 `option enabled '1'`.
 
+## History
+
+The change history, the plans and the channel measurements are kept in
+`/etc/chanmgr` across reboots and sysupgrade. They are written after each
+evaluation and each switch only (a few small writes a day); the 5 min samples
+stay in memory. **Clear history** on the status page (or
+`chanmgr clear-history`) forgets them; the 24 h minimum between two switches
+of a radio is kept.
+
 ## CLI
 
 ```
-chanmgr status | discover | sample | evaluate [--apply|--dry-run] [--no-gap] | apply | daemon
+chanmgr status | discover | sample | evaluate [--apply|--dry-run] [--no-gap] | apply [2g|5g] | clear-history | daemon
 chanmgr agent info | survey | scan <radio>
 ```
 
@@ -197,7 +206,6 @@ chanmgr agent info | survey | scan <radio>
 | `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |
 | `bcn_count` | `10` | CSA beacon count |
 | `reload_fallback` | `0` | `wifi reload` if CSA fails (disconnects clients) |
-| `keep_history` | `1` | keep history, plans and channel measurements in `/etc/chanmgr` across reboots and sysupgrade (written after evaluations and switches only) |
 | `mesh_method` | `reload` | radios with a mesh interface: `reload` (restart on the new channel) or `csa` (experimental) |
 
 Each `config node` takes `host`, `port`, `https`, `insecure`, `username`,

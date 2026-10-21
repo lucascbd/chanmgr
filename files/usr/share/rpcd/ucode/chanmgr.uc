@@ -43,6 +43,7 @@ return {
 		evaluate: { args: { apply: false }, call: wrap((a) => background(a.apply ? 'evaluate --apply --no-gap' : 'evaluate --dry-run --no-gap')) },
 		apply: { args: { band: '' }, call: wrap((a) => background(match(a.band ?? '', /^(2g|5g)$/) ? 'apply ' + a.band : 'apply')) },
 		discover: { call: wrap(() => ctl.discover()) },
+		clear_history: { call: wrap(() => ctl.clear_history()) },
 
 		// this device as an access point managed by a controller
 		local_status: {

@@ -107,6 +107,7 @@ return function(t) {
 		local: { '.type': 'node' }
 	};
 	require('fs').unlink(getenv('CHANMGR_RUN_DIR') + '/state.json');
+	require('fs').unlink(getenv('CHANMGR_PERSIST_DIR') + '/state.json');
 
 	agent.dev.radios.radio1.channel = 36;
 	agent.dev.radios.radio1.width = 40;

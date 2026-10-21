@@ -72,4 +72,8 @@ function confirm(a) {
 	return { ok: dev.radios[a.radio].channel == a.channel };
 }
 
-return { info, survey, scan, switch_channel, confirm, dev, calls };
+function clear_changes() {
+	push(calls, "clear_changes");
+}
+
+return { info, survey, scan, switch_channel, confirm, clear_changes, dev, calls };

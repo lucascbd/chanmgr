@@ -23,6 +23,12 @@ const callLocal = rpc.declare({
 	expect: { }
 });
 
+const callClear = rpc.declare({
+	object: 'chanmgr',
+	method: 'clear_history',
+	expect: { }
+});
+
 const callApply = rpc.declare({
 	object: 'chanmgr',
 	method: 'apply',
@@ -400,14 +406,40 @@ return view.extend({
 		});
 	},
 
+	handleClear(root, ev) {
+		if (!confirm(_('Clear the history? This forgets the channel changes, the channel measurements collected so far and the current plans. The 24 h minimum between two switches of a radio is kept.')))
+			return;
+
+		return callClear().then((r) => {
+			if (r?.error)
+				return ui.addNotification(null, E('p', _('Could not clear the history: %s').format(r.error)), 'danger');
+
+			ui.addNotification(null, E('p', _('History cleared.')), 'info');
+
+			return (root.chanmgrAp ? callLocal().then((ap) => ({ ap })) : callStatus()).then((st) => {
+				root.chanmgrLast = null;
+
+				return st.ap ? this.redraw(root, st.ap, () => this.renderAp(st.ap)) : this.update(root, st);
+			});
+		});
+	},
+
 	render(st) {
 		if (st.ap) {
 			const root = E('div');
+			const page = E([], [
+				root,
+				E('div', { 'style': ROW }, E('button', {
+					'class': 'btn cbi-button cbi-button-negative',
+					'click': ui.createHandlerFn(this, 'handleClear', root)
+				}, _('Clear history')))
+			]);
 
+			root.chanmgrAp = true;
 			this.redraw(root, st.ap, () => this.renderAp(st.ap));
 			poll.add(() => callLocal().then((ap) => this.redraw(root, ap, () => this.renderAp(ap))), 10);
 
-			return root;
+			return page;
 		}
 
 		const root = E('div');
@@ -422,7 +454,8 @@ return view.extend({
 				_('Measures channel congestion on the configured access points and moves their radios to the least congested channels, coordinating your own access points with each other.')),
 			E('div', { 'style': ROW }, [
 				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleEvaluate') }, _('Evaluate now')),
-				E('button', { 'class': 'btn cbi-button cbi-button-apply', 'click': ui.createHandlerFn(this, 'handleApply', '') }, _('Apply plan now'))
+				E('button', { 'class': 'btn cbi-button cbi-button-apply', 'click': ui.createHandlerFn(this, 'handleApply', '') }, _('Apply plan now')),
+				E('button', { 'class': 'btn cbi-button cbi-button-negative', 'click': ui.createHandlerFn(this, 'handleClear', root) }, _('Clear history'))
 			]),
 			root
 		]);

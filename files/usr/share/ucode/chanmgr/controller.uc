@@ -61,7 +61,6 @@ function config() {
 		ref_rssi: n(m.ref_rssi, -70),
 		bcn_count: n(m.bcn_count, 10),
 		reload_fallback: m.reload_fallback == '1',
-		keep_history: m.keep_history != '0',
 		// radios with a mesh interface: "reload" restarts them on the new
 		// channel; "csa" (experimental) announces the switch like for APs
 		mesh_method: (m.mesh_method == 'csa') ? 'csa' : 'reload',
@@ -137,17 +136,14 @@ function load_state() {
 	return s;
 }
 
-// persist: also write the copy kept across reboots (true), drop it (false,
-// keep_history off) or leave it alone (null).
+// persist: also write the copy kept across reboots.
 function save_state(s, persist) {
 	fs.mkdir(RUN_DIR, 0700);
 	s.updated = time();
 	fs.writefile(STATE_FILE + '.tmp', sprintf('%J', s));
 	fs.rename(STATE_FILE + '.tmp', STATE_FILE);
 
-	if (persist == false)
-		fs.unlink(PERSIST_FILE);
-	else if (persist) {
+	if (persist) {
 		// utilization counters are meaningless after a reboot
 		let keep = { ...s };
 
@@ -1031,7 +1027,7 @@ function evaluate(opts) {
 		st.last_error = e.message;
 	}
 
-	save_state(st, cfg.keep_history);
+	save_state(st, true);
 	unlock();
 
 	return { ok: !st.last_error, plans: st.plans };
@@ -1050,7 +1046,7 @@ function apply(only_band) {
 			ok = apply_band(cfg, st, band) && ok;
 
 	discover(cfg, st);
-	save_state(st, cfg.keep_history);
+	save_state(st, true);
 	unlock();
 
 	return { ok };
@@ -1133,6 +1129,28 @@ function scheduler() {
 	};
 }
 
+// "Clear history": change history, channel measurements and plans (with
+// their confirmation streaks). The 24 h minimum between switches of a radio
+// is a safeguard, not history, and is kept.
+function clear_history() {
+	if (!lock('clear'))
+		return { error: 'another operation is running' };
+
+	let st = load_state();
+
+	st.history = [];
+	st.chanstats = {};
+	st.util = {};
+	st.plans = {};
+	st.radios = {};
+	save_state(st, true);
+	agent.clear_changes();
+	unlock();
+	log('notice', 'history cleared');
+
+	return { ok: true };
+}
+
 function status() {
 	let st = load_state();
 
@@ -1186,4 +1204,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into, clear_history };
