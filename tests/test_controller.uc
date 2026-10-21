@@ -87,13 +87,20 @@ return function(t) {
 
 	t.eq(map(b5.units, (u) => [ u.id, u.radios, u.locked ]), [ [ 'group:mesh', [ 'ap1/radio1', 'ap2/radio1' ], null ] ], 'model: mesh group is one unit');
 
-	let p = score.plan(b5.units, m.radios, m.pairs, cfg);
+	let plan_band = (band) => {
+		let cm = ctl.capacity_model(cfg, st, m, band, time());
+
+		return [ cm.units, score.plan(cm.units, cm.radios, m.pairs, cfg) ];
+	};
+
+	let r5 = plan_band('5g'), p = r5[1];
 	t.eq(chan.key(p.best['group:mesh']), '149/80', '5g: group leaves congested block');
+	t.eq(map(r5[0][0].candidates, (s) => s.width), [ 80, 80 ], '5g: current width only while width analysis is off');
 
-	let b2 = m.bands['2g'];
-	p = score.plan(b2.units, m.radios, m.pairs, cfg);
+	let r2 = plan_band('2g');
+	p = r2[1];
 
-	let ch = map(b2.units, (u) => p.best[u.id].channel);
+	let ch = map(r2[0], (u) => p.best[u.id].channel);
 	t.ok(ch[0] != ch[1], '2g: own APs separated');
 	t.ok(index(ch, 6) < 0, '2g: avoids neighbor on 6');
 

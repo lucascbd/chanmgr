@@ -9,15 +9,15 @@ config chanmgr 'main'
 	option sample_interval '300'
 	option scan_gap '120'
 	option apply_gap '30'
-	# apply only if cost drops by >= min_gain_rel % and >= min_gain_abs
+	# the plan uses the average of the last N days of measurements; an
+	# automatic change waits until the new channel has N days of data
+	option history_days '3'
+	# apply only if the estimated capacity grows by >= min_gain_rel %
 	option min_gain_rel '25'
-	option min_gain_abs '0.5'
 	# same plan in N consecutive evaluations
 	option confirm '2'
 	option min_switch_interval '86400'
 	option allow_dfs '0'
-	option util_weight '2'
-	option own_weight '2'
 	option ref_rssi '-70'
 	option bcn_count '10'
 	option reload_fallback '0'
@@ -30,12 +30,10 @@ config chanmgr 'main'
 	list channels_2g '1'
 	list channels_2g '6'
 	list channels_2g '11'
-	# channel width analysis (5 GHz, analysis only, off by default): widths
-	# to compare and days of scan data before an estimate counts as reliable
+	# 5 GHz: also choose the channel width (off: keep the configured width)
 	option width_analysis '0'
 	list widths_5g '40'
 	list widths_5g '80'
-	option history_days '3'
 
 config node 'local'
 	option enabled '1'

@@ -52,12 +52,9 @@ function config() {
 		scan_gap: n(m.scan_gap, 120),
 		apply_gap: n(m.apply_gap, 30),
 		min_gain_rel: n(m.min_gain_rel, 25),
-		min_gain_abs: n(m.min_gain_abs, 0.5),
 		confirm: n(m.confirm, 2),
 		min_switch_interval: n(m.min_switch_interval, 86400),
 		allow_dfs: m.allow_dfs == '1',
-		util_weight: n(m.util_weight, 2),
-		own_weight: n(m.own_weight, 2),
 		ref_rssi: n(m.ref_rssi, -70),
 		bcn_count: n(m.bcn_count, 10),
 		reload_fallback: m.reload_fallback == '1',
@@ -552,10 +549,10 @@ function chanstats_summary(h, days, now) {
 	return { util, count, first };
 }
 
-// Inputs of the capacity planner for one band (channel and width chosen
-// together, see score.plan_capacity): per radio the estimated busy fraction
-// of every 20 MHz channel, per unit the options of every width in widths_5g
-// (and the current one) that all members can use.
+// Inputs of the planner for one band (see score.plan): per radio the
+// estimated busy fraction of every 20 MHz channel, per unit the options all
+// members can use: the current width, plus every width in widths_5g on 5 GHz
+// when width_analysis is on.
 function capacity_model(cfg, st, model, band, now) {
 	let radios = {}, sums = {}, options = {};
 
@@ -565,7 +562,7 @@ function capacity_model(cfg, st, model, band, now) {
 
 		let nr = split(rid, '/');
 		let allowed = chan.allowed_map(st.nodes[nr[0]]?.radios?.[nr[1]]?.channels ?? [], band);
-		let sum = chanstats_summary(st.chanstats[rid], cfg.history_days, now);
+		let sum = chanstats_summary(st.chanstats?.[rid], cfg.history_days, now);
 		let measured = {};
 
 		for (let f, m in sum.util)
@@ -573,7 +570,9 @@ function capacity_model(cfg, st, model, band, now) {
 
 		let channels = uniq([ ...map(keys(allowed), (k) => +k), ...chan.subchannels(r.current) ]);
 		let vht = chan.htmode_flags(r.htmode, band).vht;
-		let widths = uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ]);
+		let widths = (band == '5g' && cfg.width_analysis)
+			? uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ])
+			: [ r.current.width ];
 		let opts = [];
 
 		for (let w in widths)
@@ -615,17 +614,26 @@ function capacity_model(cfg, st, model, band, now) {
 		return { samples: n, days: (now - oldest) / 86400.0 };
 	};
 
-	let ready = (best) => {
+	// least days of measurements behind the proposed option of each unit
+	let days = (best) => {
 		let res = {};
 
 		for (let u in units)
-			res[u.id] = !!best[u.id] && length(filter(u.radios, (rid) =>
-				radios[rid] && data(rid, best[u.id]).days < cfg.history_days - DATA_GRACE / 86400.0)) == 0;
+			res[u.id] = best[u.id] ? min(...map(filter(u.radios, (rid) => radios[rid]), (rid) => data(rid, best[u.id]).days)) : 0;
 
 		return res;
 	};
 
-	return { units, radios, data, ready };
+	let ready = (best) => {
+		let res = {}, d = days(best);
+
+		for (let u in units)
+			res[u.id] = !!best[u.id] && d[u.id] >= cfg.history_days - DATA_GRACE / 86400.0;
+
+		return res;
+	};
+
+	return { units, radios, data, days, ready };
 }
 
 function spec_json(s) {
@@ -637,9 +645,6 @@ function record(st, model, band, p, d, units, cm) {
 
 	st.plans[band] = {
 		ts: time(),
-		metric: p.metric ?? 'cost',
-		current_cost: p.current_cost,
-		best_cost: p.best_cost,
 		current_value: p.current_value,
 		best_value: p.best_value,
 		ready: p.ready,
@@ -662,10 +667,9 @@ function record(st, model, band, p, d, units, cm) {
 				node: r.node, radio: r.radio, band, unit: u.id, locked: u.locked,
 				channel: r.current.channel, width: r.current.width,
 				util: r.util['' + r.current.freq],
-				costs: cm ? null : slice(p.table[rid], 0, 8),
-				options: cm ? map(slice(p.table[rid], 0, 10), (o) => ({
+				options: map(slice(p.table[rid], 0, 10), (o) => ({
 					...o, ...cm.data(rid, chan.spec(band, o.channel, o.width))
-				})) : null,
+				})),
 				neighbors: slice(sort(map(r.neighbors, (n) => ({
 					bssid: n.bssid, ssid: n.ssid, signal: n.signal,
 					channel: n.spec.channel, width: n.spec.width
@@ -960,47 +964,32 @@ function evaluate(opts) {
 					log('warn', '%s/%s: scan failed: %s', node.name, radio, res.error);
 				else {
 					scans[node.name + '/' + radio] = res.data;
-					if (cfg.width_analysis) {
-						let u = st.util[node.name + '/' + radio];
 
-						record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now,
-							(u?.value != null && u.freq == r.freq) ? { freq: u.freq, value: u.value } : null);
-					}
+					let u = st.util[node.name + '/' + radio];
+
+					record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now,
+						(u?.value != null && u.freq == r.freq) ? { freq: u.freq, value: u.value } : null);
 				}
 			}
 		}
 
 		let model = build_model(cfg, st, scans);
 
-		if (!cfg.width_analysis)
-			st.chanstats = {};
-
 		st.radios = {};
 
 		for (let band, b in model.bands) {
-			let units = b.units, p, cm = null;
+			let cm = capacity_model(cfg, st, model, band, now);
+			let units = cm.units;
+			let p = score.plan(units, cm.radios, model.pairs, cfg);
 
-			// width analysis on: channel and width chosen together by capacity
-			if (cfg.width_analysis && band == '5g') {
-				cm = capacity_model(cfg, st, model, band, now);
-				units = cm.units;
-				p = score.plan_capacity(units, cm.radios, model.pairs, cfg);
-				p.ready = cm.ready(p.best);
-			}
-			else
-				p = score.plan(units, model.radios, model.pairs, cfg);
+			p.ready = cm.ready(p.best);
+			p.days = cm.days(p.best);
 
 			let d = score.decide(units, p, st.plans[band], st.last_switch, cfg, now);
 
 			record(st, model, band, p, d, units, cm);
-
-			if (cm)
-				st.plans[band].history_days = cfg.history_days;
-
-			if (cm)
-				log('info', '%s: capacity %.2f -> %.2f, %s (%s)', band, p.current_value, p.best_value, d.action, d.reason);
-			else
-				log('info', '%s: cost %.2f -> %.2f, %s (%s)', band, p.current_cost, p.best_cost, d.action, d.reason);
+			st.plans[band].history_days = cfg.history_days;
+			log('info', '%s: capacity %.2f -> %.2f, %s (%s)', band, p.current_value, p.best_value, d.action, d.reason);
 
 			let do_apply = (opts?.apply != null) ? opts.apply : (cfg.mode == 'apply');
 
@@ -1204,4 +1193,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into, clear_history };
+return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into, clear_history, capacity_model };

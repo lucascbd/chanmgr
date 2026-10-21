@@ -3,6 +3,7 @@
 let uci = require('uci');
 let agent = require('chanmgr.agent');   // stub
 let ctl = require('chanmgr.controller');
+let chan = require('chanmgr.chan');
 
 function reset_state() {
 	let fs = require('fs');
@@ -13,7 +14,7 @@ function reset_state() {
 
 return function(t) {
 	uci.data.chanmgr = {
-		main: { '.type': 'chanmgr', mode: 'recommend', scan_gap: '0', apply_gap: '0', confirm: '2' },
+		main: { '.type': 'chanmgr', mode: 'recommend', scan_gap: '0', apply_gap: '0', confirm: '2', history_days: '0' },
 		local: { '.type': 'node' }
 	};
 
@@ -32,7 +33,7 @@ return function(t) {
 	let st = ctl.status();
 	t.eq(sort(keys(st.radios)), [ 'local/radio0', 'local/radio1' ], 'status: radios');
 	t.eq(st.radios['local/radio0'].neighbors[0].ssid, 'loud', 'status: neighbors');
-	t.ok(length(st.radios['local/radio1'].costs) == 2, 'status: cost table (36/80, 149/80)');
+	t.ok(length(st.radios['local/radio1'].options) == 2, 'status: options table (36/80, 149/80)');
 	t.ok(st.radios['local/radio0'].util > 0, 'status: sampled utilization');
 
 	// apply one band only
@@ -111,4 +112,21 @@ return function(t) {
 	t.eq([ cleared.history, cleared.plans, cleared.radios ], [ [], {}, {} ], 'clear: history and plans gone');
 	t.eq([ saved.history, saved.chanstats ], [ [], {} ], 'clear: persistent copy cleared too');
 	t.eq(cleared.last_switch, held, 'clear: 24 h hold kept');
+
+	// with the default 3 days, a fresh start proposes a plan but switches
+	// nothing automatically until the measurements cover those days
+	uci.data.chanmgr.main.mode = 'apply';
+	agent.dev.neighbors.radio1 = [ { bssid: 'aa:11:22:33:44:02', freq: chan.chan2freq('5g', agent.dev.radios.radio1.channel), signal: -45, primary: agent.dev.radios.radio1.channel, vht_width: 0 } ];
+	fs.unlink(run + '/state.json');
+	fs.unlink(keep + '/state.json');
+
+	let calls0 = length(agent.calls);
+
+	ctl.evaluate();
+	let fresh = ctl.evaluate();
+
+	t.ok(fresh.plans['5g'].key != '', 'measurements: a better channel is proposed');
+	t.eq(fresh.plans['5g'].action, 'wait', 'measurements: no automatic change without days of data');
+	t.ok(index(fresh.plans['5g'].reason, 'collecting measurements') == 0, 'measurements: says so (' + fresh.plans['5g'].reason + ')');
+	t.eq(length(filter(slice(agent.calls, calls0), (c) => index(c, 'switch') == 0)), 0, 'measurements: nothing switched');
 };

@@ -70,33 +70,33 @@ return function(t) {
 	let opts = [ chan.spec('5g', 36, 40), chan.spec('5g', 44, 40), chan.spec('5g', 149, 40), chan.spec('5g', 157, 40),
 		chan.spec('5g', 36, 80), chan.spec('5g', 149, 80) ];
 	let units = [ { id: 'g', radios: [ 'a', 'b' ], current: chan.spec('5g', 36, 40), candidates: opts } ];
-	let p = score.plan_capacity(units, { a: { busy }, b: { busy } }, [], {});
+	let p = score.plan(units, { a: { busy }, b: { busy } }, [], {});
 	t.eq(chan.key(p.best.g), '149/80', 'capacity plan: free block at 80 MHz wins');
 	t.ok(p.best_value > p.current_value * 3, 'capacity plan: values');
 	t.eq(p.table.a[0].best, true, 'capacity plan: table sorted, best first');
 
 	// a busy secondary 40: 80 MHz adds nothing, 40 MHz is kept (ties keep the narrower)
 	let busy2 = util({ '149': 0.05, '153': 0.05, '157': 1, '161': 1, '36': 0.6, '40': 0.6, '44': 0.6, '48': 0.6 });
-	p = score.plan_capacity([ { id: 'r', radios: [ 'a' ], current: chan.spec('5g', 149, 40), candidates: opts } ], { a: { busy: busy2 } }, [], {});
+	p = score.plan([ { id: 'r', radios: [ 'a' ], current: chan.spec('5g', 149, 40), candidates: opts } ], { a: { busy: busy2 } }, [], {});
 	t.eq(chan.key(p.best.r), '149/40', 'capacity plan: busy secondary -> stays 40 MHz');
 
 	// two own APs that hear each other well are kept apart
 	let flat = util({ '36': 0.1, '40': 0.1, '44': 0.1, '48': 0.1, '149': 0.1, '153': 0.1, '157': 0.1, '161': 0.1 });
 	let two = [ { id: 'a', radios: [ 'a' ], current: chan.spec('5g', 36, 40), candidates: opts },
 		{ id: 'b', radios: [ 'b' ], current: chan.spec('5g', 36, 40), candidates: opts } ];
-	p = score.plan_capacity(two, { a: { busy: flat }, b: { busy: flat } }, [ { a: 'a', b: 'b', signal: -45 } ], {});
+	p = score.plan(two, { a: { busy: flat }, b: { busy: flat } }, [ { a: 'a', b: 'b', signal: -45 } ], {});
 	t.eq(chan.overlap(p.best.a, p.best.b), 0, 'capacity plan: own APs on separate blocks');
 
 	// width change rules
 	let u1 = [ { id: 'g', radios: [ 'a' ], current: chan.spec('5g', 36, 40) } ];
-	let pw = { metric: 'capacity', best: { g: chan.spec('5g', 149, 80) }, best_value: 4, current_value: 1, ready: { g: false } };
+	let pw = { best: { g: chan.spec('5g', 149, 80) }, best_value: 4, current_value: 1, ready: { g: false } };
 	let dd = score.decide(u1, pw, { key: 'g=149/80', streak: 5 }, {}, { history_days: 3 }, 0);
 	t.eq(dd.action, 'wait', 'decide: width change waits for data');
 	t.ok(index(dd.reason, '3 days') > 0, 'decide: says why');
 	pw.ready = { g: true };
 	t.eq(score.decide(u1, pw, { key: 'g=149/80', streak: 1 }, {}, {}, 0).action, 'wait', 'decide: width change needs 3 confirmations');
 	t.eq(score.decide(u1, pw, { key: 'g=149/80', streak: 2 }, {}, {}, 0).action, 'switch', 'decide: third confirmation switches');
-	let pc = { metric: 'capacity', best: { g: chan.spec('5g', 149, 40) }, best_value: 1.3, current_value: 1.0 };
+	let pc = { best: { g: chan.spec('5g', 149, 40) }, best_value: 1.3, current_value: 1.0, ready: { g: true } };
 	t.eq(score.decide(u1, pc, { key: 'g=149/40', streak: 1 }, {}, {}, 0).action, 'switch', 'decide: channel only, normal rules (+30%, 2x)');
 	pc.best_value = 1.1;
 	t.eq(score.decide(u1, pc, null, {}, {}, 0).action, 'keep', 'decide: small capacity gain kept');
@@ -123,16 +123,13 @@ return function(t) {
 	let s = ctl.status();
 	let plan = s.plans['5g'];
 
-	t.eq(plan.metric, 'capacity', 'unified: 5 GHz planned by capacity');
 	t.eq([ plan.units[0].best.channel, plan.units[0].best.width ], [ 149, 80 ], 'unified: channel and width together');
 	t.eq(plan.action, 'wait', 'unified: width change waits');
-	t.ok(index(plan.reason, 'days of measurements') > 0, 'unified: waiting for data');
-	t.eq(s.plans['2g'].metric, 'cost', 'unified: 2.4 GHz unchanged');
+	t.ok(index(plan.reason, 'collecting measurements') == 0, 'unified: waiting for data');
 
 	let o = s.radios['local/radio1'].options;
 	t.ok(length(o) >= 4 && o[0].capacity >= o[1].capacity, 'unified: options ranked by capacity');
 	t.ok(o[0].samples >= 1 && o[0].days != null, 'unified: data behind each option');
-	t.eq(s.radios['local/radio1'].costs, null, 'unified: no separate cost table');
 	t.eq(length(filter(slice(agent.calls, calls), (c) => index(c, 'switch') == 0)), 0, 'unified: nothing switched');
 
 	// with enough history it is recommended after the confirmations
@@ -141,12 +138,13 @@ return function(t) {
 	ctl.evaluate({ apply: false });
 	t.eq(ctl.status().plans['5g'].action, 'recommend', 'unified: recommended once data and confirmations are there');
 
-	// width analysis off: back to the interference cost, current width only
+	// width analysis off: same model, current width only, measurements still kept
 	delete uci.data.chanmgr.main.width_analysis;
 	ctl.evaluate({ apply: false });
 	s = ctl.status();
-	t.eq([ s.plans['5g'].metric, s.plans['5g'].units[0].best.width ], [ 'cost', 40 ], 'width analysis off: cost model, width kept');
-	t.eq(length(keys(json(require('fs').readfile(getenv('CHANMGR_RUN_DIR') + '/state.json')).chanstats)), 0, 'width analysis off: history cleared');
+	t.eq(s.plans['5g'].units[0].best.width, 40, 'width analysis off: width kept');
+	t.eq(uniq(map(s.radios['local/radio1'].options, (o) => o.width)), [ 40 ], 'width analysis off: only current width considered');
+	t.ok(length(keys(json(require('fs').readfile(getenv('CHANMGR_RUN_DIR') + '/state.json')).chanstats)) > 0, 'width analysis off: measurements still kept');
 
 	agent.dev.survey = null;
 	agent.dev.radios.radio1.width = 80;

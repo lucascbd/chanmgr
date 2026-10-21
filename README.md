@@ -8,15 +8,16 @@ chanmgr fills that gap:
   samples (`iw survey dump`), excluding the radio's own transmit time.
 * **Scans** neighbors at scheduled quiet hours (default 02:30 and 04:30), one
   node at a time, so the clients always have an access point that stays on channel.
-* **Plans jointly**: it computes a cost per channel for every radio, adding a penalty when
-  two of *your* access points overlap, weighted by how loudly they hear each other.
-  Then it searches all channel combinations, or uses coordinate descent when there are too many.
+* **Plans jointly**: it rates every channel by the capacity it would give, from the
+  busy time measured over the last days, with *your* access points sharing airtime
+  where they overlap. Then it searches all channel combinations, or uses coordinate
+  descent when there are too many.
 * **Applies carefully**: it switches one radio at a time with CSA (`hostapd switch_chan`),
   checks the result, stops on the first failure and persists the new channel
   with `uci commit` only, without `wifi reload`.
-* **Hysteresis**: it switches only when the gain is at least 25 % and 0.5 in cost,
-  the same plan was proposed in 2 consecutive evaluations, and the radio did not
-  switch in the last 24 h.
+* **Hysteresis**: it switches only with 3 days of measurements on the new channel,
+  a capacity gain of at least 25 %, the same plan in 2 consecutive evaluations, and
+  no switch of that radio in the last 24 h.
 * **Safe defaults**: recommend-only mode, DFS off, 2.4 GHz restricted to 1/6/11.
   Allowed channels are read from the regulatory domain (`iw phy`), never from a
   fixed table. 6 GHz radios are ignored.
@@ -33,7 +34,7 @@ several access points.
 | `files/` | the `chanmgr` package payload (ucode) |
 | `files/usr/share/ucode/chanmgr/chan.uc` | channel math: blocks, spectrum overlap, candidates |
 | `files/usr/share/ucode/chanmgr/parse.uc` | `iw` output parsers |
-| `files/usr/share/ucode/chanmgr/score.uc` | cost model, joint plan search, hysteresis (pure) |
+| `files/usr/share/ucode/chanmgr/score.uc` | capacity model, joint plan search, hysteresis (pure) |
 | `files/usr/share/ucode/chanmgr/agent.uc` | local measurements and CSA |
 | `files/usr/share/ucode/chanmgr/remote.uc` | ubus-over-HTTP client for remote agents |
 | `files/usr/share/ucode/chanmgr/controller.uc` | orchestration, state, scheduler |
@@ -43,51 +44,42 @@ several access points.
 | `tests/` | unit and end-to-end tests (host ucode, stubs for ubus/uci/agent) |
 | `scripts/deploy.sh` | copy everything to a device for testing |
 
-## Cost model
+## How channels are rated
 
-For a radio on a candidate channel:
-
-```
-cost = Σ neighbors overlap(candidate, neighbor) × 10^((rssi − ref_rssi)/10)
-     + util_weight × utilization(candidate)
-```
-
-`overlap` is the shared spectrum as a fraction of the narrower of the two
-channels. In 2.4 GHz a 20 MHz signal counts as 22 MHz wide, so 1/6/11 do not
-overlap but 1/3 do. A neighbor received at `ref_rssi` (−70 dBm) costs 1.0, and
-every +10 dB multiplies the cost by 10. `utilization` is the busy fraction
-(busy − own tx) / active from the survey data.
-
-For each pair of own access points in different units, the plan adds
-`own_weight × overlap × weight(rssi they hear each other at)`. The plan
-minimizes the total over all radios of a band.
-
-### Channel width
-
-With `width_analysis` on (off by default), the 5 GHz plan chooses channel and
-width together. Interference alone always favours narrow channels, so options
-are compared by estimated **capacity** instead, in units of one free 20 MHz
-channel. A transmission uses a width only when every 20 MHz subchannel of that
-block (built around the primary) is free, otherwise it falls back to a
-narrower one:
+Every option (a channel, at a given width) is rated by its estimated
+**capacity**, in units of one free 20 MHz channel. A transmission uses a width
+only when every 20 MHz subchannel of that block (built around the primary) is
+free, otherwise it falls back to a narrower one:
 
 ```
 capacity = P(20 free) + P(40 free) + 2 * P(80 free) + 4 * P(160 free)
 ```
 
-The busy fraction of each 20 MHz channel is the mean of one survey sample per
-evaluation over the last `history_days` (3), blended with a prior from the
-neighbors heard on it, so the neighbor signal decides while there is little
-data and the measurements take over as they accumulate. The channel in use is
-measured all day, without the receive airtime of the AP's own clients
-(per-station `rx duration`). Own access points that hear each other share
-airtime where their channels overlap. The plan maximizes the total capacity
-over all radios and widths in `widths_5g` (40, 80) plus the current one.
+where P(40 free) is the product of the free airtime of the primary and its
+secondary 20 MHz channel, and so on. The busy fraction of each 20 MHz channel
+is the mean of the survey samples of the last `history_days` (3): one per
+channel and evaluation from the scans, and all-day samples for the channel in
+use (without the receive airtime of the AP's own clients, per-station `rx
+duration`). While a channel has few samples, a prior from the neighbors heard
+on it (signal weighted: 1 at `ref_rssi`, x10 per +10 dB, partial overlap in
+2.4 GHz counted) stands in, worth two samples. Own access points that hear
+each other share airtime where their channels overlap. The plan maximizes the
+total capacity over all radios of a band.
 
-A width change is only proposed when every channel of the new option has
-`history_days` of data, the capacity grows by at least 30 % and three
-evaluations in a row propose it. It is applied by writing channel and
-`htmode` (e.g. HE40 -> HE80), with the guarded restart on mesh radios.
+An automatic change needs `history_days` of measurements on the new option, a
+capacity gain of `min_gain_rel` (25 %) and `confirm` (2) evaluations in a row
+proposing it, and a radio moves at most once per `min_switch_interval`. Until
+the data covers those days, the status page shows the plan with
+"collecting measurements". "Apply plan now" does not wait.
+
+### Channel width
+
+By default the 5 GHz radios keep their configured width and only the channel
+is chosen. With `width_analysis` on, the plan also considers every width in
+`widths_5g` (40, 80): channel and width are chosen together by the same
+capacity estimate. A width change needs a gain of at least 30 % and three
+evaluations in a row. It is applied by writing channel and `htmode` (e.g.
+HE40 -> HE80), with the guarded restart on mesh radios.
 
 Radios that must share a channel (802.11s mesh, batman-adv fallback links) go
 into a **group**, and the group is planned and switched as a single unit. A radio
@@ -195,15 +187,15 @@ chanmgr agent info | survey | scan <radio>
 | `sample_interval` | `300` | seconds between utilization samples |
 | `scan_gap` | `120` | seconds between the scans of two nodes |
 | `apply_gap` | `30` | seconds between switching two units |
-| `min_gain_rel` / `min_gain_abs` | `25` / `0.5` | minimum gain to switch |
+| `min_gain_rel` | `25` | minimum capacity gain (%) to switch (30 for a width change) |
 | `confirm` | `2` | consecutive evaluations proposing the same plan |
 | `min_switch_interval` | `86400` | seconds before a radio may move again |
 | `allow_dfs` | `0` | consider channels 52–144 |
 | `channels_2g` | `1 6 11` | 2.4 GHz candidates |
-| `width_analysis` | `0` | 5 GHz: choose channel and width together by capacity |
+| `width_analysis` | `0` | 5 GHz: also choose the channel width |
 | `widths_5g` | `40 80` | 5 GHz widths the plan may use |
-| `history_days` | `3` | days of data a width change needs |
-| `util_weight`, `own_weight`, `ref_rssi` | `2`, `2`, `-70` | cost model |
+| `history_days` | `3` | days of measurements averaged; an automatic change waits for them |
+| `ref_rssi` | `-70` | neighbor signal counted as 1 in the prior |
 | `bcn_count` | `10` | CSA beacon count |
 | `reload_fallback` | `0` | `wifi reload` if CSA fails (disconnects clients) |
 | `mesh_method` | `reload` | radios with a mesh interface: `reload` (restart on the new channel) or `csa` (experimental) |

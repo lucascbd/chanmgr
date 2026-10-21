@@ -118,10 +118,6 @@ function fmtChan(s) {
 	return s ? '%d (%d MHz)'.format(s.channel, s.width) : '-';
 }
 
-function fmtNum(v) {
-	return (v != null) ? '%.2f'.format(v) : '-';
-}
-
 function fmtPct(v) {
 	return (v != null) ? '%.0f%%'.format(v * 100) : '-';
 }
@@ -260,16 +256,11 @@ return view.extend({
 				E('h3', _('Plan for %s').format(BANDS[band] ?? band)),
 				E('p', [
 					E('strong', ACTIONS[p.action] ?? p.action), ' – ', p.reason, E('br'),
-					(p.metric == 'capacity')
-						? _('Total capacity: current %s, best %s (gain %s). Channel and width chosen together. Evaluated %s.').format(
-							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), fmtTime(p.ts))
-						: _('Total cost: current %s, best %s (gain %s / %s). Evaluated %s.').format(
-							fmtNum(p.current_cost), fmtNum(p.best_cost), fmtNum(p.gain), fmtPct(p.rel), fmtTime(p.ts))
+					_('Total capacity: current %s, best %s (gain %s), from the average of the last %d days. Evaluated %s.').format(
+						fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts))
 				]),
 				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios')),
-				(p.metric == 'capacity')
-					? E('p', { 'style': 'font-size:90%' }, _('Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. It comes from the busy time measured on each channel over the last days; while there are few measurements, the neighbors heard on the channel stand in for them.'))
-					: '',
+				E('p', { 'style': 'font-size:90%' }, _('Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. It comes from the busy time measured on each channel over the last days; while there are few measurements, the neighbors heard on the channel stand in for them.')),
 				(p.key && p.action != 'applied')
 					? E('div', { 'style': ROW }, E('button', {
 						'class': 'btn cbi-button cbi-button-apply',
@@ -293,14 +284,6 @@ return view.extend({
 
 		for (const rid of Object.keys(st.radios ?? {}).sort()) {
 			const r = st.radios[rid];
-			const costs = (r.costs ?? []).map((c) => [
-				'%d'.format(c.channel) + (c.current ? ' ' + _('(current)') : '') + (c.best ? ' ' + _('(planned)') : ''),
-				'%d MHz'.format(c.width),
-				E('strong', fmtNum(c.cost)),
-				fmtNum(c.ext),
-				fmtPct(c.util),
-				fmtNum(c.own)
-			]);
 			const neigh = (r.neighbors ?? []).map((n) => [
 				n.ssid || E('em', _('hidden')), n.bssid, '%d'.format(n.channel), '%d MHz'.format(n.width), '%d dBm'.format(n.signal)
 			]);
@@ -308,16 +291,14 @@ return view.extend({
 			out.push(E('div', { 'class': 'cbi-section' }, [
 				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
 				E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Best channels')),
-				r.options
-					? table([ _('Channel'), _('Width'), _('Capacity'), _('Busy'), _('Data') ],
-						r.options.map((o) => [
-							'%d'.format(o.channel) + (o.current ? ' ' + _('(current)') : '') + (o.best ? ' ' + _('(planned)') : ''),
-							'%d MHz'.format(o.width),
-							E('strong', fmtCap(o.capacity)),
-							fmtPct(o.busy),
-							fmtData(o, st.plans?.[r.band]?.history_days ?? 3)
-						]), _('No data'))
-					: table([ _('Channel'), _('Width'), _('Cost'), _('Neighbors'), _('Utilization'), _('Own APs') ], costs, _('No data')),
+				table([ _('Channel'), _('Width'), _('Capacity'), _('Busy'), _('Data') ],
+					(r.options ?? []).map((o) => [
+						'%d'.format(o.channel) + (o.current ? ' ' + _('(current)') : '') + (o.best ? ' ' + _('(planned)') : ''),
+						'%d MHz'.format(o.width),
+						E('strong', fmtCap(o.capacity)),
+						fmtPct(o.busy),
+						fmtData(o, st.plans?.[r.band]?.history_days ?? 3)
+					]), _('No data')),
 				E('details', { 'data-key': rid, 'style': 'margin-bottom:1.5em' }, [
 					E('summary', _('Neighbor networks (%d)').format(neigh.length)),
 					table([ _('SSID'), _('BSSID'), _('Channel'), _('Width'), _('Signal') ], neigh, _('No neighbors seen'))

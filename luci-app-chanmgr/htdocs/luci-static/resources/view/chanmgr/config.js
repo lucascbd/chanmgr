@@ -144,16 +144,17 @@ return view.extend({
 		o.placeholder = '120';
 
 		o = s.taboption('decision', form.Value, 'min_gain_rel', _('Minimum relative gain (%)'),
-			_('Only switch if the total cost drops by at least this percentage.'));
+			_('Only switch if the estimated total capacity grows by at least this percentage (30% at least for a width change).'));
 		o.datatype = 'range(0,100)';
 		o.placeholder = '25';
 
-		o = s.taboption('decision', form.Value, 'min_gain_abs', _('Minimum absolute gain'));
-		o.datatype = 'ufloat';
-		o.placeholder = '0.5';
+		o = s.taboption('decision', form.Value, 'history_days', _('Days of measurements'),
+			_('The plan uses the average of the measurements of these last days. An automatic change waits until the new channel has this many days of data; "Apply plan now" does not wait.'));
+		o.datatype = 'range(1,30)';
+		o.placeholder = '3';
 
 		o = s.taboption('decision', form.Value, 'confirm', _('Confirmations'),
-			_('Number of consecutive evaluations that must propose the same plan.'));
+			_('Number of consecutive evaluations that must propose the same plan (3 at least for a width change).'));
 		o.datatype = 'range(1,10)';
 		o.placeholder = '2';
 
@@ -171,7 +172,7 @@ return view.extend({
 		o.placeholder = '1';
 
 		o = s.taboption('width', form.Flag, 'width_analysis', _('Choose the channel width too'),
-			_('The 5 GHz plan then picks channel and width together, by how much your devices could transmit, measured on each channel over several days. A width change is only proposed with enough days of data, at least 30% more capacity and three evaluations in a row asking for it; it is applied like any other change, so only in "Apply automatically" mode or with the apply button.'));
+			_('Off: the 5 GHz radios keep their configured width and only the channel is chosen. On: channel and width are chosen together, by the same estimate of how much your devices could transmit.'));
 		o.default = o.disabled;
 
 		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),
@@ -183,24 +184,8 @@ return view.extend({
 		o.default = '40 80';
 		o.depends('width_analysis', '1');
 
-		o = s.taboption('width', form.Value, 'history_days', _('Days of measurements'),
-			_('How many days of scans an estimate needs before it is considered reliable.'));
-		o.datatype = 'range(1,30)';
-		o.placeholder = '3';
-		o.depends('width_analysis', '1');
-
-		o = s.taboption('advanced', form.Value, 'util_weight', _('Utilization weight'),
-			_('Cost added by a fully busy channel, compared to a neighbor received at the reference level.'));
-		o.datatype = 'ufloat';
-		o.placeholder = '2';
-
-		o = s.taboption('advanced', form.Value, 'own_weight', _('Own AP weight'),
-			_('Multiplier for the interference between your own access points.'));
-		o.datatype = 'ufloat';
-		o.placeholder = '2';
-
 		o = s.taboption('advanced', form.Value, 'ref_rssi', _('Reference signal (dBm)'),
-			_('A neighbor received at this level costs 1.0; every +10 dB multiplies the cost by 10.'));
+			_('While a channel has few measurements, its busy time is estimated from the neighbors heard on it: a neighbor at this level counts as 1, every +10 dB as 10 times more.'));
 		o.datatype = 'range(-100,-20)';
 		o.placeholder = '-70';
 
