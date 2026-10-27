@@ -40,7 +40,8 @@ several access points.
 | `files/usr/share/ucode/chanmgr/controller.uc` | orchestration, state, scheduler |
 | `luci-app-chanmgr/` | LuCI app, laid out as `applications/luci-app-chanmgr` in `openwrt/luci` |
 | `chanmgr/Makefile` | package built from this repository (feed use) |
-| `openwrt/net/chanmgr/Makefile.upstream` | package Makefile for the `openwrt/packages` feed |
+| `openwrt/net/chanmgr/` | package Makefile (`Makefile.upstream`) and CI runtime test for openwrt/packages |
+| `scripts/prepare-upstream.sh` | creates the submission commits for openwrt/packages and openwrt/luci |
 | `tests/` | unit and end-to-end tests (host ucode, stubs for ubus/uci/agent) |
 | `scripts/deploy.sh` | copy everything to a device for testing |
 
@@ -262,15 +263,30 @@ files to a running device.
 
 ## Upstream submission
 
-1. Tag a release (`v0.2.0`). In `openwrt/net/chanmgr/Makefile.upstream`, set
-   `PKG_HASH` (`sha256sum` of the codeload tarball) and your full name in
-   `PKG_MAINTAINER`.
-2. PR to `openwrt/packages`: copy it to `net/chanmgr/Makefile`.
-   Commit `chanmgr: add new package`, `Signed-off-by:` with your real name, and
-   list compile- and run-tested targets in the PR.
-3. After it is merged, PR to `openwrt/luci`: copy `luci-app-chanmgr/` to
-   `applications/luci-app-chanmgr/` (its Makefile then uses `../../luci.mk`).
-   Commit `luci-app-chanmgr: add new application`.
+`chanmgr` goes to [openwrt/packages](https://github.com/openwrt/packages) first,
+`luci-app-chanmgr` to [openwrt/luci](https://github.com/openwrt/luci) once the
+first one is merged.
+
+1. Merge into `main`, set `PKG_VERSION` in `chanmgr/Makefile` and
+   `openwrt/net/chanmgr/Makefile.upstream`, commit, tag `v<version>` and push
+   the tag.
+2. Fork both repositories on GitHub and clone the forks.
+3. With your full name and e-mail in `git config user.name` / `user.email`:
+
+   ```sh
+   scripts/prepare-upstream.sh <version> ../packages ../luci
+   ```
+
+   It downloads the release tarball, fills in `PKG_HASH` and `PKG_MAINTAINER`,
+   regenerates the LuCI translation template and creates one signed-off commit
+   in each clone (`chanmgr: add new package`,
+   `luci-app-chanmgr: add new application`). Nothing is pushed.
+4. Push the `chanmgr` branch and open the pull request against `master` of
+   openwrt/packages; list the targets you compile- and run-tested. After it is
+   merged, do the same with `luci-app-chanmgr` in openwrt/luci.
+
+Merged packages appear in the snapshot builds. For a stable release (e.g.
+25.12), a backport pull request to its `openwrt-XX.YY` branch follows.
 
 ## License
 
