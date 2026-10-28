@@ -2,13 +2,13 @@
 #
 # chanmgr built straight from this repository, which can be used as an
 # OpenWrt feed:
-#   src-git chanmgr https://github.com/lucascbd/luci-app-chanmgr.git
+#   src-git chanmgr https://github.com/lucascbd/chanmgr.git
 # For the openwrt/packages feed see openwrt/net/chanmgr/Makefile.upstream.
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=chanmgr
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.0.1
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=Lucas <lucascbdias@gmail.com>
@@ -28,7 +28,7 @@ define Package/chanmgr
   CATEGORY:=Network
   SUBMENU:=WirelessAPD
   TITLE:=Periodic Wi-Fi channel optimizer
-  URL:=https://github.com/lucascbd/luci-app-chanmgr
+  URL:=https://github.com/lucascbd/chanmgr
   DEPENDS:=+ucode +ucode-mod-fs +ucode-mod-ubus +ucode-mod-uci \
 	+rpcd +rpcd-mod-ucode +iw +uclient-fetch
   PKGARCH:=all

@@ -245,7 +245,7 @@ This repository is an OpenWrt feed (`chanmgr/` and `luci-app-chanmgr/`). In
 your build tree:
 
 ```sh
-echo 'src-git chanmgr https://github.com/lucascbd/luci-app-chanmgr.git' >> feeds.conf.default
+echo 'src-git chanmgr https://github.com/lucascbd/chanmgr.git' >> feeds.conf.default
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 ./scripts/feeds install chanmgr luci-app-chanmgr
@@ -267,9 +267,10 @@ files to a running device.
 `luci-app-chanmgr` to [openwrt/luci](https://github.com/openwrt/luci) once the
 first one is merged.
 
-1. Merge into `main`, set `PKG_VERSION` in `chanmgr/Makefile` and
-   `openwrt/net/chanmgr/Makefile.upstream`, commit, tag `v<version>` and push
-   the tag.
+1. Merge into `main`, set the version in `chanmgr/Makefile`,
+   `openwrt/net/chanmgr/Makefile.upstream` and `VERSION` in
+   `files/usr/sbin/chanmgr` (the tests check they match), commit, tag
+   `v<version>` and push the tag.
 2. Fork both repositories on GitHub and clone the forks.
 3. With your full name and e-mail in `git config user.name` / `user.email`:
 
@@ -278,9 +279,12 @@ first one is merged.
    ```
 
    It downloads the release tarball, fills in `PKG_HASH` and `PKG_MAINTAINER`,
-   regenerates the LuCI translation template and creates one signed-off commit
-   in each clone (`chanmgr: add new package`,
-   `luci-app-chanmgr: add new application`). Nothing is pushed.
+   copies the configuration, init script and keep.d list to `net/chanmgr/files/`
+   (reviewers want them in the feed), regenerates the LuCI translation template
+   and creates one signed-off commit in each clone (`chanmgr: add new package`,
+   `luci-app-chanmgr: add new application`). Nothing is pushed. Run again for
+   a new version while the pull request is open: the branch is rebuilt as one
+   commit, to push with `--force`.
 4. Push the `chanmgr` branch and open the pull request against `master` of
    openwrt/packages; list the targets you compile- and run-tested. After it is
    merged, do the same with `luci-app-chanmgr` in openwrt/luci.

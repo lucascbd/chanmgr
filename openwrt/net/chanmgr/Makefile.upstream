@@ -1,19 +1,19 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # Copy of chanmgr/Makefile for the openwrt/packages feed: there the source
-# comes from a tagged release of this repository. Rename to "Makefile" in
-# net/chanmgr/ of openwrt/packages and set PKG_HASH for the release tarball.
+# comes from a tagged release of this repository, and the configuration,
+# init script and keep.d list sit next to the Makefile (files/), copied
+# by scripts/prepare-upstream.sh. It also sets PKG_HASH.
 # (Named Makefile.upstream here so this feed does not list chanmgr twice.)
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=chanmgr
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.0.1
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://codeload.github.com/lucascbd/luci-app-chanmgr/tar.gz/v$(PKG_VERSION)?
+PKG_SOURCE_URL:=https://codeload.github.com/lucascbd/chanmgr/tar.gz/v$(PKG_VERSION)?
 PKG_HASH:=skip
-PKG_BUILD_DIR:=$(BUILD_DIR)/luci-app-chanmgr-$(PKG_VERSION)
 
 PKG_MAINTAINER:=Lucas <lucascbdias@gmail.com>
 PKG_LICENSE:=GPL-2.0-only
@@ -26,7 +26,7 @@ define Package/chanmgr
   CATEGORY:=Network
   SUBMENU:=WirelessAPD
   TITLE:=Periodic Wi-Fi channel optimizer
-  URL:=https://github.com/lucascbd/luci-app-chanmgr
+  URL:=https://github.com/lucascbd/chanmgr
   DEPENDS:=+ucode +ucode-mod-fs +ucode-mod-ubus +ucode-mod-uci \
 	+rpcd +rpcd-mod-ucode +iw +uclient-fetch
   PKGARCH:=all
@@ -58,11 +58,11 @@ define Package/chanmgr/install
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/files/usr/share/rpcd/acl.d/chanmgr-agent.json $(1)/usr/share/rpcd/acl.d/
 	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/etc/config/chanmgr $(1)/etc/config/
+	$(INSTALL_CONF) ./files/chanmgr.config $(1)/etc/config/chanmgr
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/etc/init.d/chanmgr $(1)/etc/init.d/
+	$(INSTALL_BIN) ./files/chanmgr.init $(1)/etc/init.d/chanmgr
 	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/files/lib/upgrade/keep.d/chanmgr $(1)/lib/upgrade/keep.d/
+	$(INSTALL_DATA) ./files/chanmgr.keep $(1)/lib/upgrade/keep.d/chanmgr
 endef
 
 define Package/chanmgr/postinst

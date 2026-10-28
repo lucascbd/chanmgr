@@ -8,10 +8,14 @@ let agent = require('chanmgr.agent');
 let guard = require('chanmgr.guard');
 let login = require('chanmgr.login');
 
+// kept equal to PKG_VERSION (checked by the tests)
+const VERSION = '1.0.1';
+
 function usage() {
 	warn(
 		'Usage: chanmgr <command> [options]\n\n' +
 		'Commands:\n' +
+		'  version                 Print the version\n' +
 		'  status                  Print the last evaluation (JSON)\n' +
 		'  discover [--json]       Query all nodes and list their radios\n' +
 		'  sample                  Take one channel-utilization sample\n' +
@@ -41,6 +45,11 @@ let has = (f) => index(args, f) >= 0;
 let out = (v) => print(sprintf('%.J\n', v));
 
 switch (cmd) {
+case 'version':
+case '--version':
+	print(sprintf('chanmgr %s\n', VERSION));
+	break;
+
 case 'status':
 	out(ctl.status());
 	break;

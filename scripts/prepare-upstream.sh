@@ -18,7 +18,7 @@ version=$1
 pkgs=$(cd "$2" && pwd) || die "no such directory: $2"
 luci=$(cd "$3" && pwd) || die "no such directory: $3"
 repo=$(cd "$(dirname "$0")/.." && pwd)
-url=${CHANMGR_TARBALL_URL:-https://codeload.github.com/lucascbd/luci-app-chanmgr/tar.gz/v$version}
+url=${CHANMGR_TARBALL_URL:-https://codeload.github.com/lucascbd/chanmgr/tar.gz/v$version}
 
 [ -f "$pkgs/net/Makefile" ] || [ -d "$pkgs/net" ] || die "$pkgs does not look like openwrt/packages"
 [ -x "$luci/build/i18n-sync.sh" ] || die "$luci does not look like openwrt/luci"
@@ -47,9 +47,24 @@ fi || die "download failed: is the tag v$version pushed?"
 hash=$(sha256sum "$tmp/src.tar.gz" | cut -d' ' -f1)
 echo "PKG_HASH: $hash"
 
+# A new branch from the default branch, or, when the branch exists (pull
+# request already open), the same branch rebuilt from its base: one commit,
+# to push with --force.
+branch() {
+	local dir=$1 name=$2 main
+
+	main=$(git -C "$dir" symbolic-ref -q --short refs/remotes/origin/HEAD) || main=origin/master
+	if git -C "$dir" rev-parse -q --verify "refs/heads/$name" >/dev/null; then
+		git -C "$dir" checkout -q -B "$name" "$(git -C "$dir" merge-base "$main" "$name")"
+	else
+		git -C "$dir" checkout -q -b "$name" "$main"
+	fi
+}
+
 # --- openwrt/packages: net/chanmgr ------------------------------------------
-git -C "$pkgs" checkout -q -b chanmgr
-mkdir -p "$pkgs/net/chanmgr"
+branch "$pkgs" chanmgr
+rm -rf "$pkgs/net/chanmgr"
+mkdir -p "$pkgs/net/chanmgr/files"
 
 # drop the header comment meant for this repository
 sed -e '/^# Copy of chanmgr\/Makefile/,/^# (Named Makefile.upstream/d' \
@@ -58,6 +73,9 @@ sed -e '/^# Copy of chanmgr\/Makefile/,/^# (Named Makefile.upstream/d' \
 	-e "s|^PKG_MAINTAINER:=.*|PKG_MAINTAINER:=$name <$email>|" \
 	"$repo/openwrt/net/chanmgr/Makefile.upstream" > "$pkgs/net/chanmgr/Makefile"
 cp "$repo/openwrt/net/chanmgr/test.sh" "$pkgs/net/chanmgr/test.sh"
+cp "$repo/files/etc/config/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.config"
+cp "$repo/files/etc/init.d/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.init"
+cp "$repo/files/lib/upgrade/keep.d/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.keep"
 
 git -C "$pkgs" add net/chanmgr
 git -C "$pkgs" commit -q -s -F - <<EOF
@@ -73,7 +91,7 @@ rollback for radios that carry 802.11s mesh links.
 EOF
 
 # --- openwrt/luci: applications/luci-app-chanmgr ------------------------------
-git -C "$luci" checkout -q -b luci-app-chanmgr
+branch "$luci" luci-app-chanmgr
 rm -rf "$luci/applications/luci-app-chanmgr"
 cp -r "$repo/luci-app-chanmgr" "$luci/applications/luci-app-chanmgr"
 
@@ -102,7 +120,8 @@ Done. Review the commits:
   git -C "$pkgs" show --stat HEAD
   git -C "$luci" show --stat HEAD
 
-Then push the branches to your forks and open the pull requests:
+Then push the branches to your forks (add --force when the pull request
+is already open) and open the pull requests:
   1. chanmgr          -> openwrt/packages (master)
   2. luci-app-chanmgr -> openwrt/luci (master), once 1. is merged
 EOF
