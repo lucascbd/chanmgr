@@ -9,4 +9,5 @@ for f in /usr/share/ucode/chanmgr/*.uc /usr/share/rpcd/ucode/chanmgr.uc /usr/sbi
 	ucode -c -o /dev/null "$f" || exit 1
 done
 
-/usr/sbin/chanmgr status | grep -q '"scheduler"'
+/usr/sbin/chanmgr --version | grep "^chanmgr $2\$" || exit 1
+/usr/sbin/chanmgr status | grep '"scheduler"'

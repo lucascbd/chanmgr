@@ -37,10 +37,12 @@ endef
 define Package/chanmgr/description
   Periodically measures Wi-Fi channel congestion (passive survey sampling
   plus scheduled off-channel scans) and moves radios to the least
-  congested channels using channel switch announcements, without
-  disconnecting clients. Several access points can be planned jointly
-  from one controller, so they also avoid each other. Runs in
-  recommend-only mode by default.
+  congested channels. Access point radios switch with channel switch
+  announcements, without disconnecting clients; radios that also carry
+  802.11s mesh links are restarted on the new channel instead, with an
+  automatic rollback if the mesh does not come back. Several access
+  points can be planned jointly from one controller, so they also avoid
+  each other. Runs in recommend-only mode by default.
 endef
 
 define Package/chanmgr/conffiles
