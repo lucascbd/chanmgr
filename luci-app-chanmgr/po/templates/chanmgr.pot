@@ -19,12 +19,16 @@ msgstr ""
 msgid "%d samples, ready"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:298
 msgid "(current)"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:298
 msgid "(planned)"
+msgstr ""
+
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:293
+msgid "(up to %d MHz)"
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/config.js:169
@@ -67,11 +71,11 @@ msgstr ""
 msgid "Apply automatically"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:438
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:440
 msgid "Apply plan now"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:386
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:388
 msgid "Applying the plan, one radio at a time."
 msgstr ""
 
@@ -79,7 +83,7 @@ msgstr ""
 msgid "At least 8 characters. Leave empty to keep the current password."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
 msgid "BSSID"
 msgstr ""
 
@@ -91,11 +95,11 @@ msgstr ""
 msgid "Beacons announcing the channel switch before it happens."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:293
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:295
 msgid "Best channels"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
 msgid "Busy"
 msgstr ""
 
@@ -109,7 +113,7 @@ msgid ""
 "recommended."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
 msgid "Capacity"
 msgstr ""
 
@@ -127,15 +131,15 @@ msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:200
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Channel"
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/config.js:72
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:186
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:433
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:435
 #: applications/luci-app-chanmgr/root/usr/share/luci/menu.d/luci-app-chanmgr.json:3
 msgid "Channel Manager"
 msgstr ""
@@ -145,7 +149,7 @@ msgid "Channel Width"
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:203
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:319
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:321
 msgid "Channel changes"
 msgstr ""
 
@@ -169,12 +173,12 @@ msgstr ""
 msgid "Choose the channel width too"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:416
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:439
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:418
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:441
 msgid "Clear history"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:391
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:393
 msgid ""
 "Clear the history? This forgets the channel changes, the channel "
 "measurements collected so far and the current plans. The 24 h minimum "
@@ -193,7 +197,7 @@ msgstr ""
 msgid "Confirmations"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:396
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:398
 msgid "Could not clear the history: %s"
 msgstr ""
 
@@ -205,7 +209,7 @@ msgstr ""
 msgid "Current channel"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
 msgid "Data"
 msgstr ""
 
@@ -218,7 +222,7 @@ msgid "Decision"
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Details"
 msgstr ""
 
@@ -241,11 +245,11 @@ msgstr ""
 msgid "Enabled"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:437
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:439
 msgid "Evaluate now"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:373
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:375
 msgid ""
 "Evaluation started. Scanning briefly interrupts Wi-Fi clients; results "
 "appear here when done."
@@ -288,7 +292,7 @@ msgstr ""
 msgid "Guarded restart (recommended)"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:398
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:400
 msgid "History cleared."
 msgstr ""
 
@@ -345,7 +349,7 @@ msgstr ""
 msgid "Locked radios"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:326
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:328
 msgid "Log"
 msgstr ""
 
@@ -364,7 +368,7 @@ msgid ""
 "switch the Wi-Fi channels."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:435
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:437
 msgid ""
 "Measures channel congestion on the configured access points and moves their "
 "radios to the least congested channels, coordinating your own access points "
@@ -396,7 +400,7 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:303
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:305
 msgid "Neighbor networks (%d)"
 msgstr ""
 
@@ -404,11 +408,11 @@ msgstr ""
 msgid "No changes since the last reboot"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "No changes yet"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:301
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:303
 msgid "No data"
 msgstr ""
 
@@ -417,11 +421,11 @@ msgid ""
 "No evaluation yet. Press \"Evaluate now\" or wait for the next scheduled run."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:328
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:330
 msgid "No log messages"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
 msgid "No neighbors seen"
 msgstr ""
 
@@ -512,7 +516,7 @@ msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:200
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Radio"
 msgstr ""
 
@@ -560,7 +564,7 @@ msgid "Reload Wi-Fi if CSA fails"
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Result"
 msgstr ""
 
@@ -582,7 +586,7 @@ msgstr ""
 msgid "Running"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
 msgid "SSID"
 msgstr ""
 
@@ -635,7 +639,7 @@ msgstr ""
 msgid "Short identifier used in groups, e.g. ap1."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
 msgid "Signal"
 msgstr ""
 
@@ -653,13 +657,13 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:379
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:381
 msgid ""
 "Switch the %s radios to the planned channels now? The other band is not "
 "touched. Clients follow the channel switch announcement; some may reconnect."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:380
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:382
 msgid ""
 "Switch the radios to the planned channels now? Clients will follow the "
 "channel switch announcement; some may reconnect."
@@ -680,10 +684,6 @@ msgid ""
 "\"Apply plan now\" does not wait."
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/config.js:179
-msgid "The width configured on the radio is always included."
-msgstr ""
-
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:188
 msgid ""
 "This device is an access point managed by a router running chanmgr. The "
@@ -691,7 +691,7 @@ msgid ""
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Time"
 msgstr ""
 
@@ -746,10 +746,17 @@ msgid ""
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:204
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:304
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:320
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:296
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:306
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:322
 msgid "Width"
+msgstr ""
+
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/config.js:179
+msgid ""
+"Widths you allow. Each radio only uses the ones its hardware supports (shown "
+"on the status page), and radios in a group only the ones all of them "
+"support. The width configured on the radio is always included."
 msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:152
@@ -771,7 +778,7 @@ msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:60
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:182
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:315
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:317
 msgid "failed"
 msgstr ""
 
@@ -821,7 +828,7 @@ msgstr ""
 
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:162
 #: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:182
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:315
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:317
 msgid "ok"
 msgstr ""
 
@@ -857,7 +864,7 @@ msgstr ""
 msgid "this device"
 msgstr ""
 
-#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:292
+#: applications/luci-app-chanmgr/htdocs/luci-static/resources/view/chanmgr/status.js:294
 msgid "utilization %s"
 msgstr ""
 

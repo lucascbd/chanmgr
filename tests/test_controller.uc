@@ -97,6 +97,17 @@ return function(t) {
 	t.eq(chan.key(p.best['group:mesh']), '149/80', '5g: group leaves congested block');
 	t.eq(map(r5[0][0].candidates, (s) => s.width), [ 80, 80 ], '5g: current width only while width analysis is off');
 
+	// width analysis: a group only gets the widths every member's hardware supports
+	let cfgw = { ...cfg, width_analysis: true, widths_5g: [ 40, 80, 160 ], allow_dfs: true };
+	let widths = () => uniq(sort(map(ctl.capacity_model(cfgw, st, ctl.build_model(cfgw, st, scans), '5g', time()).units[0].candidates, (s) => s.width)));
+
+	t.eq(widths(), [ 40, 80, 160 ], '5g widths: no hardware limit reported');
+	st.nodes.ap1.radios.radio1.max_width = 160;
+	st.nodes.ap2.radios.radio1.max_width = 80;
+	t.eq(widths(), [ 40, 80 ], '5g widths: group limited by its narrowest radio');
+	delete st.nodes.ap1.radios.radio1.max_width;
+	delete st.nodes.ap2.radios.radio1.max_width;
+
 	let r2 = plan_band('2g');
 	p = r2[1];
 

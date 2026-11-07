@@ -375,7 +375,7 @@ function build_model(cfg, st, scans) {
 			let width = (r.band == '2g') ? 20 : chan.htmode_width(r.htmode);
 
 			radios[rid] = {
-				rid, node: node.name, radio, band: r.band, htmode: r.htmode,
+				rid, node: node.name, radio, band: r.band, htmode: r.htmode, max_width: r.max_width,
 				current: chan.spec(r.band, r.channel, (r.band == '2g') ? 20 : r.width, (r.band == '2g') ? null : r.center),
 				candidates: chan.candidates(r.band, width, chan.allowed_map(r.channels, r.band), cfg, r.channel),
 				has_mesh: r.has_mesh,
@@ -552,7 +552,7 @@ function chanstats_summary(h, days, now) {
 // Inputs of the planner for one band (see score.plan): per radio the
 // estimated busy fraction of every 20 MHz channel, per unit the options all
 // members can use: the current width, plus every width in widths_5g on 5 GHz
-// when width_analysis is on.
+// when width_analysis is on, up to the widest one the hardware supports.
 function capacity_model(cfg, st, model, band, now) {
 	let radios = {}, sums = {}, options = {};
 
@@ -571,7 +571,7 @@ function capacity_model(cfg, st, model, band, now) {
 		let channels = uniq([ ...map(keys(allowed), (k) => +k), ...chan.subchannels(r.current) ]);
 		let vht = chan.htmode_flags(r.htmode, band).vht;
 		let widths = (band == '5g' && cfg.width_analysis)
-			? uniq([ ...filter(cfg.widths_5g, (w) => w == 20 || w == 40 || (w >= 80 && vht)), r.current.width ])
+			? uniq([ ...filter(cfg.widths_5g, (w) => (w == 20 || w == 40 || (w >= 80 && vht)) && w <= (r.max_width ?? w)), r.current.width ])
 			: [ r.current.width ];
 		let opts = [];
 
@@ -665,7 +665,7 @@ function record(st, model, band, p, d, units, cm) {
 
 			st.radios[rid] = {
 				node: r.node, radio: r.radio, band, unit: u.id, locked: u.locked,
-				channel: r.current.channel, width: r.current.width,
+				channel: r.current.channel, width: r.current.width, max_width: r.max_width,
 				util: r.util['' + r.current.freq],
 				options: map(slice(p.table[rid], 0, 10), (o) => ({
 					...o, ...cm.data(rid, chan.spec(band, o.channel, o.width))

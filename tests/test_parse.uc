@@ -39,4 +39,16 @@ return function(t) {
 
 	let sta = parse.station_rx('Station aa:bb:cc:dd:ee:01 (on phy1-ap0)\n\tinactive time:\t10 ms\n\trx duration:\t123456 us\n\ttx duration:\t50 us\nStation aa:bb:cc:dd:ee:02 (on phy1-ap0)\n\trx duration:\t7 us\n');
 	t.eq(sta, { 'aa:bb:cc:dd:ee:01': 123456, 'aa:bb:cc:dd:ee:02': 7 }, 'station rx airtime');
+
+	// hardware channel widths per band
+	let caps = (b2, b5) => '\tBand 1:\n\t\tCapabilities: 0x9ef\n' + b2 + '\t\tFrequencies:\n\t\t\t* 2412.0 MHz [1] (20.0 dBm)\n' +
+		'\tBand 2:\n\t\tCapabilities: 0x9ef\n\t\t\tHT20/HT40\n\t\tVHT Capabilities (0x339071b2):\n' + b5 +
+		'\t\tFrequencies:\n\t\t\t* 5180.0 MHz [36] (23.0 dBm)\n\tSupported commands:\n\t\t * new_interface\n';
+
+	t.eq(parse.phy_widths(caps('\t\t\tHT20/HT40\n', '\t\t\tSupported Channel Width: neither 160 nor 80+80\n\t\t\t\tHE40/HE80/5GHz\n')),
+		{ '2g': 40, '5g': 80 }, 'phy widths: up to 80 MHz (AX1800 class)');
+	t.eq(parse.phy_widths(caps('', '\t\t\t\tHE40/HE80/5GHz\n\t\t\t\tHE160/5GHz\n')),
+		{ '2g': 20, '5g': 160 }, 'phy widths: HE160');
+	t.eq(parse.phy_widths(caps('', '\t\t\tSupported Channel Width: 160 MHz, 80+80 MHz\n')), { '2g': 20, '5g': 160 }, 'phy widths: VHT160');
+	t.eq(parse.phy_widths(t.fixture('phy_5g.txt')), { '5g': 20 }, 'phy widths: no capability lines');
 };

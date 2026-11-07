@@ -21,6 +21,7 @@ case "$*" in
 	n=$(cat "$d/peers"); i=0
 	while [ $i -lt "$n" ]; do printf 'Station 56:af:97:40:a0:4%d (on phy1-mesh0)\n\tmesh plink:\tESTAB\n' $i; i=$((i + 1)); done;;
 "phy#1 info")
+	printf '\tBand 2:\n\t\tVHT Capabilities (0x0):\n\t\t\t\tHE40/HE80/5GHz\n\t\t\t\tHE160/5GHz\n\t\tFrequencies:\n'
 	printf '\t\t\t* 5180.0 MHz [36] (23.0 dBm)\n\t\t\t* 5745.0 MHz [149] (30.0 dBm)\n';;
 "dev phy1-mesh0 switch"*)
 	echo "$*" >> "$d/iw.log";;

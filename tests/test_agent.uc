@@ -40,7 +40,7 @@ return function(t) {
 	// info
 	reset(5180);
 	let i = agent.info().radios.radio1;
-	t.eq([ i.channel, i.has_mesh, i.ifname, length(i.channels) ], [ 36, true, 'phy1-ap0', 2 ], 'agent: info');
+	t.eq([ i.channel, i.has_mesh, i.ifname, length(i.channels), i.max_width ], [ 36, true, 'phy1-ap0', 2, 160 ], 'agent: info');
 
 	// CSA works: switched and persisted
 	reset(5180);

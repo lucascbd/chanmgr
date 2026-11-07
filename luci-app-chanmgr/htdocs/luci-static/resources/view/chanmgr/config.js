@@ -176,7 +176,7 @@ return view.extend({
 		o.default = o.disabled;
 
 		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),
-			_('The width configured on the radio is always included.'));
+			_('Widths you allow. Each radio only uses the ones its hardware supports (shown on the status page), and radios in a group only the ones all of them support. The width configured on the radio is always included.'));
 		o.value('20', '20 MHz');
 		o.value('40', '40 MHz');
 		o.value('80', '80 MHz');

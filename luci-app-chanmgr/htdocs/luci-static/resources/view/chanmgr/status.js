@@ -289,7 +289,9 @@ return view.extend({
 			]);
 
 			out.push(E('div', { 'class': 'cbi-section' }, [
-				E('h3', '%s – %s, %s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r), _('utilization %s').format(fmtPct(r.util)))),
+				E('h3', '%s – %s, %s%s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r),
+					(r.band == '5g' && r.max_width) ? ' ' + _('(up to %d MHz)').format(r.max_width) : '',
+					_('utilization %s').format(fmtPct(r.util)))),
 				E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Capacity'), _('Busy'), _('Data') ],
 					(r.options ?? []).map((o) => [

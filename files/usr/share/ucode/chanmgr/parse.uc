@@ -137,6 +137,45 @@ function phy_channels(text) {
 	return res;
 }
 
+// "iw phy <phy> info": the widest channel the hardware supports per band,
+// { '2g': 40, '5g': 160 }. Bands without capability lines count as 20 MHz.
+function phy_widths(text) {
+	let res = {}, sect = null;
+	let done = () => {
+		if (sect?.band)
+			res[sect.band] = max(res[sect.band] ?? 20, sect.width);
+	};
+
+	for (let l in lines(text)) {
+		let m;
+
+		if (match(l, /^\tBand [0-9]+:/)) {
+			done();
+			sect = { band: null, width: 20 };
+		}
+		else if (!sect)
+			continue;
+		else if (match(l, /^\S/) || match(l, /^\t[^\t]/)) {
+			done();
+			sect = null;
+		}
+		else if ((m = match(l, /^\s+\* ([0-9]+)(\.[0-9]+)? MHz \[/)))
+			sect.band ??= (+m[1] < 3000) ? '2g' : (+m[1] < 5950) ? '5g' : '6g';
+		else if (match(l, /HT20\/HT40/) || match(l, /HE40\/2\.4GHz/))
+			sect.width = max(sect.width, 40);
+		else if (match(l, /^\t\tVHT Capabilities/) || match(l, /HE40\/HE80\/5GHz/))
+			sect.width = max(sect.width, 80);
+		else if (match(l, /Supported Channel Width: 160/) || match(l, /HE160\/5GHz/))
+			sect.width = max(sect.width, 160);
+		else if (match(l, /EHT320/))
+			sect.width = max(sect.width, 320);
+	}
+
+	done();
+
+	return res;
+}
+
 // "iw dev <if> station dump": receive airtime per client, { mac: microseconds }
 function station_rx(text) {
 	let res = {}, mac = null;
@@ -153,4 +192,4 @@ function station_rx(text) {
 	return res;
 }
 
-return { scan, survey, dev_info, phy_channels, station_rx };
+return { scan, survey, dev_info, phy_channels, phy_widths, station_rx };

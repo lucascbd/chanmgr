@@ -85,7 +85,8 @@ function info() {
 		let d = main.info;
 		let band = r.config?.band ?? cur.get('wireless', name, 'band') ?? chan.freq2band(d.freq);
 		let htmode = r.config?.htmode ?? cur.get('wireless', name, 'htmode') ?? 'HT20';
-		let channels = parse.phy_channels(iw('phy#' + d.wiphy + ' info'));
+		let phy = iw('phy#' + d.wiphy + ' info');
+		let channels = parse.phy_channels(phy);
 
 		radios[name] = {
 			band, htmode,
@@ -94,6 +95,9 @@ function info() {
 			channel: d.channel,
 			freq: d.freq,
 			width: d.width,
+			// widest channel the hardware supports in this band (at least the
+			// one it runs on, should the capabilities not be read)
+			max_width: max(parse.phy_widths(phy)[band] ?? 20, d.width ?? 20),
 			center: chan.freq2chan(d.center1),
 			cfg_channel: '' + (r.config?.channel ?? cur.get('wireless', name, 'channel') ?? 'auto'),
 			has_mesh: length(filter(ifaces, (i) => i.mode == 'mesh')) > 0,

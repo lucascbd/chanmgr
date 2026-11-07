@@ -78,7 +78,9 @@ the data covers those days, the status page shows the plan with
 By default the 5 GHz radios keep their configured width and only the channel
 is chosen. With `width_analysis` on, the plan also considers every width in
 `widths_5g` (40, 80): channel and width are chosen together by the same
-capacity estimate. A width change needs a gain of at least 30 % and three
+capacity estimate. Each radio only gets the widths its hardware supports
+(read from `iw phy`, shown on the status page and by `chanmgr discover`), and
+a group only the widths all its radios support. A width change needs a gain of at least 30 % and three
 evaluations in a row. It is applied by writing channel and `htmode` (e.g.
 HE40 -> HE80), with the guarded restart on mesh radios.
 
