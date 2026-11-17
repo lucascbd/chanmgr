@@ -148,6 +148,11 @@ return view.extend({
 		o.datatype = 'range(0,100)';
 		o.placeholder = '25';
 
+		o = s.taboption('decision', form.Value, 'min_gain_abs', _('Minimum capacity gain'),
+			_('Only switch if the estimated total capacity also grows by at least this much. Capacity is counted in free 20 MHz channels: 1 is a whole free 20 MHz channel, so a small gain on a busy band is not worth a switch even when its percentage is high.'));
+		o.datatype = 'ufloat';
+		o.placeholder = '0.2';
+
 		o = s.taboption('decision', form.Value, 'history_days', _('Days of measurements'),
 			_('The plan uses the average of the measurements of these last days. An automatic change waits until the new channel has this many days of data; "Apply plan now" does not wait.'));
 		o.datatype = 'range(1,30)';

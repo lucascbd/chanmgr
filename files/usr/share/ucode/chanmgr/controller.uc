@@ -20,6 +20,7 @@ const PERSIST_DIR = getenv('CHANMGR_PERSIST_DIR') ?? '/etc/chanmgr';
 const PERSIST_FILE = PERSIST_DIR + '/state.json';
 const LOCK_DIR = RUN_DIR + '/lock';
 const HISTORY_MAX = 50;
+const EVALS_MAX = 50;
 
 function log(prio, fmt, ...args) {
 	let msg = sprintf(fmt, ...args);
@@ -52,6 +53,8 @@ function config() {
 		scan_gap: n(m.scan_gap, 120),
 		apply_gap: n(m.apply_gap, 30),
 		min_gain_rel: n(m.min_gain_rel, 25),
+		// and by at least this much capacity (in free 20 MHz channels)
+		min_capacity_gain: n(m.min_gain_abs, 0.2),
 		confirm: n(m.confirm, 2),
 		min_switch_interval: n(m.min_switch_interval, 86400),
 		allow_dfs: m.allow_dfs == '1',
@@ -129,6 +132,7 @@ function load_state() {
 	s.last_switch ??= {};
 	s.history ??= [];
 	s.chanstats ??= {};
+	s.evals ??= [];
 
 	return s;
 }
@@ -189,6 +193,37 @@ function running() {
 	let parts = split(trim(owner), ' ');
 
 	return fs.stat('/proc/' + parts[0]) ? parts[1] : null;
+}
+
+// The units a plan moves, as recorded before it is applied.
+function plan_changes(p) {
+	return map(filter(p.units, (u) => u.best && (u.best.channel != u.current?.channel || u.best.width != u.current?.width)),
+		(u) => ({ unit: u.id, from: u.current, to: u.best }));
+}
+
+// One line of the evaluation log: when, why, and per band the decision.
+//   changes: { band: plan_changes() } of this run
+function add_eval(st, opts, now, errors, changes) {
+	let bands = {};
+
+	for (let band, p in st.plans) {
+		if (p.ts < now)
+			continue;
+
+		bands[band] = {
+			action: p.action, reason: p.reason,
+			current_value: p.current_value, best_value: p.best_value, rel: p.rel,
+			changes: changes[band] ?? []
+		};
+	}
+
+	unshift(st.evals, {
+		ts: now, trigger: opts?.trigger ?? 'manual', slot: opts?.slot,
+		dry_run: opts?.apply === false, bands, errors
+	});
+
+	if (length(st.evals) > EVALS_MAX)
+		st.evals = slice(st.evals, 0, EVALS_MAX);
 }
 
 function add_history(st, entry) {
@@ -935,11 +970,17 @@ function evaluate(opts) {
 		return { error: 'another operation is running' };
 
 	let cfg = config(), st = load_state(), now = time();
-	let scans = {};
+	let scans = {}, errors = [], changes = {};
+
+	delete st.last_error;
 
 	try {
 		discover(cfg, st);
 		sample_into(st, cfg);
+
+		for (let node in cfg.nodes)
+			if (st.nodes[node.name]?.error)
+				push(errors, sprintf('%s: %s', node.name, st.nodes[node.name].error));
 
 		let first = true;
 
@@ -960,8 +1001,10 @@ function evaluate(opts) {
 
 				let res = node.h.call('scan', { radio }, 90);
 
-				if (res.error)
+				if (res.error) {
 					log('warn', '%s/%s: scan failed: %s', node.name, radio, res.error);
+					push(errors, sprintf('%s/%s: scan failed: %s', node.name, radio, res.error));
+				}
 				else {
 					scans[node.name + '/' + radio] = res.data;
 
@@ -988,6 +1031,7 @@ function evaluate(opts) {
 			let d = score.decide(units, p, st.plans[band], st.last_switch, cfg, now);
 
 			record(st, model, band, p, d, units, cm);
+			changes[band] = plan_changes(st.plans[band]);
 			st.plans[band].history_days = cfg.history_days;
 			log('info', '%s: capacity %.2f -> %.2f, %s (%s)', band, p.current_value, p.best_value, d.action, d.reason);
 
@@ -1014,8 +1058,10 @@ function evaluate(opts) {
 	catch (e) {
 		log('err', 'evaluation failed: %s', e.message);
 		st.last_error = e.message;
+		push(errors, 'evaluation failed: ' + e.message);
 	}
 
+	add_eval(st, opts, now, errors, changes);
 	save_state(st, true);
 	unlock();
 
@@ -1128,6 +1174,7 @@ function clear_history() {
 	let st = load_state();
 
 	st.history = [];
+	st.evals = [];
 	st.chanstats = {};
 	st.util = {};
 	st.plans = {};
@@ -1162,7 +1209,7 @@ function daemon_tick(ctx) {
 		log('info', 'scheduled evaluation (%s)', slot.name);
 		heartbeat(cfg, { busy: 'evaluate' });
 
-		let r = evaluate();
+		let r = evaluate({ trigger: 'scheduled', slot: slot.name });
 
 		// another operation held the lock: try again on the next round;
 		// an evaluation that failed is not retried for this slot

@@ -14,6 +14,8 @@ config chanmgr 'main'
 	option history_days '3'
 	# apply only if the estimated capacity grows by >= min_gain_rel %
 	option min_gain_rel '25'
+	# ... and by >= min_gain_abs (in free 20 MHz channels)
+	option min_gain_abs '0.2'
 	# same plan in N consecutive evaluations
 	option confirm '2'
 	option min_switch_interval '86400'

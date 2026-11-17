@@ -252,7 +252,7 @@ function decide(units, p, prev, last_switch, opts, now) {
 		return { ...res, action: 'keep', reason: 'current channels are already the best' };
 
 	if (gain < min_abs || rel * 100 < min_rel)
-		return { ...res, action: 'keep', reason: sprintf('gain too small (%.2f, %.0f%%)', gain, rel * 100) };
+		return { ...res, action: 'keep', reason: sprintf('gain too small: %+.2f (min %.2f), %.0f%% (min %d%%)', gain, min_abs, rel * 100, min_rel) };
 
 	res.streak = (prev?.key == key) ? (prev.streak ?? 0) + 1 : 1;
 

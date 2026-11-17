@@ -68,7 +68,8 @@ each other share airtime where their channels overlap. The plan maximizes the
 total capacity over all radios of a band.
 
 An automatic change needs `history_days` of measurements on the new option, a
-capacity gain of `min_gain_rel` (25 %) and `confirm` (2) evaluations in a row
+capacity gain of `min_gain_rel` (25 %) and of at least `min_gain_abs` (0.2,
+in free 20 MHz channels), and `confirm` (2) evaluations in a row
 proposing it, and a radio moves at most once per `min_switch_interval`. Until
 the data covers those days, the status page shows the plan with
 "collecting measurements". "Apply plan now" does not wait.
@@ -165,7 +166,9 @@ If that works on every access point, set `option mode 'apply'` and
 
 ## History
 
-The change history, the plans and the channel measurements are kept in
+The change history, the evaluation log (the last 50 runs, scheduled or
+manual, with the decision per band and any problem), the plans and the
+channel measurements are kept in
 `/etc/chanmgr` across reboots and sysupgrade. They are written after each
 evaluation and each switch only (a few small writes a day); the 5 min samples
 stay in memory. **Clear history** on the status page (or
@@ -191,6 +194,7 @@ chanmgr agent info | survey | scan <radio>
 | `scan_gap` | `120` | seconds between the scans of two nodes |
 | `apply_gap` | `30` | seconds between switching two units |
 | `min_gain_rel` | `25` | minimum capacity gain (%) to switch (30 for a width change) |
+| `min_gain_abs` | `0.2` | minimum capacity gain, in free 20 MHz channels |
 | `confirm` | `2` | consecutive evaluations proposing the same plan |
 | `min_switch_interval` | `86400` | seconds before a radio may move again |
 | `allow_dfs` | `0` | consider channels 52–144 |

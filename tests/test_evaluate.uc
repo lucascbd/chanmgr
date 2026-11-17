@@ -72,6 +72,27 @@ return function(t) {
 	r = ctl.evaluate();
 	t.eq([ r.plans['5g'].action, agent.dev.radios.radio1.channel ], [ 'applied', 36 ], 'apply mode: switches back when confirmed');
 
+	// evaluation log: newest first, decision per band and the change made
+	let ev = ctl.status().evals;
+	t.eq([ ev[0].trigger, ev[0].bands['5g'].action, ev[1].bands['5g'].action ], [ 'manual', 'applied', 'failed' ], 'evals: newest first, per band');
+	t.eq(map(ev[0].bands['5g'].changes, (c) => [ c.from.channel, c.to.channel ]), [ [ 149, 36 ] ], 'evals: change recorded');
+	t.eq(ev[0].errors, [], 'evals: no problems');
+
+	ctl.evaluate({ trigger: 'scheduled', slot: '03:30', apply: false });
+	ev = ctl.status().evals;
+	t.eq([ ev[0].trigger, ev[0].slot, ev[0].dry_run ], [ 'scheduled', '03:30', true ], 'evals: scheduled run');
+
+	// a node that does not answer is listed as a problem, and the error clears later
+	uci.data.chanmgr.ap9 = { '.type': 'node', host: '10.9.9.9' };
+	ctl.evaluate({ apply: false });
+	t.ok(length(filter(ctl.status().evals[0].errors, (e) => index(e, 'ap9: ') == 0)) == 1, 'evals: unreachable node listed');
+	delete uci.data.chanmgr.ap9;
+
+	uci.data.chanmgr.main.min_gain_abs = '0.5';
+	t.eq(ctl.config().min_capacity_gain, 0.5, 'config: min_gain_abs');
+	delete uci.data.chanmgr.main.min_gain_abs;
+	t.eq(ctl.config().min_capacity_gain, 0.2, 'config: min_gain_abs default');
+
 	// our own clients' receive airtime is not counted as congestion
 	let survey = (active, busy, rx_us) => ({ data: { radios: { radio1: {
 		freq: 5745, survey: [ { freq: 5745, in_use: true, active, busy, tx: 0 } ], stations: { 'aa:bb:cc:dd:ee:01': rx_us }
@@ -109,7 +130,7 @@ return function(t) {
 	t.eq(ctl.clear_history(), { ok: true }, 'clear: done');
 
 	let cleared = ctl.status(), saved = json(fs.readfile(keep + '/state.json'));
-	t.eq([ cleared.history, cleared.plans, cleared.radios ], [ [], {}, {} ], 'clear: history and plans gone');
+	t.eq([ cleared.history, cleared.evals, cleared.plans, cleared.radios ], [ [], [], {}, {} ], 'clear: history, evaluations and plans gone');
 	t.eq([ saved.history, saved.chanstats ], [ [], {} ], 'clear: persistent copy cleared too');
 	t.eq(cleared.last_switch, held, 'clear: 24 h hold kept');
 

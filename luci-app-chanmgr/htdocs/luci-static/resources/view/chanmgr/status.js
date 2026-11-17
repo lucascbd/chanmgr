@@ -323,11 +323,35 @@ return view.extend({
 		]);
 	},
 
-	renderLog(st) {
+	// The evaluation log kept by chanmgr itself (survives reboots), and the
+	// system log lines, which only last until the log buffer wraps.
+	renderEvals(st) {
+		const band = (b) => {
+			if (!b)
+				return '-';
+
+			return E([], [
+				E('strong', ACTIONS[b.action] ?? b.action), ' – ', b.reason ?? '',
+				...(b.changes ?? []).map((c) => E([], [ E('br'), '%s: %s → %s'.format(c.unit, fmtChan(c.from), fmtChan(c.to)) ]))
+			]);
+		};
+		const rows = (st.evals ?? []).map((e) => [
+			fmtTime(e.ts),
+			((e.trigger == 'scheduled') ? _('scheduled (%s)').format(e.slot ?? '-') : _('manual'))
+				+ (e.dry_run ? ' · ' + _('no apply') : ''),
+			band(e.bands?.['2g']),
+			band(e.bands?.['5g']),
+			(e.errors ?? []).length ? warnText(e.errors.join('; ')) : ''
+		]);
+
 		return E('div', { 'class': 'cbi-section' }, [
-			E('h3', _('Log')),
-			E('pre', { 'style': 'white-space:pre-wrap;max-height:20em;overflow:auto' },
-				(st.log ?? []).length ? st.log.join('\n') : _('No log messages'))
+			E('h3', _('Evaluations')),
+			table([ _('Time'), _('Run'), BANDS['2g'], BANDS['5g'], _('Problems') ], rows, _('No evaluations yet')),
+			E('details', { 'data-key': 'syslog', 'style': 'margin-top:1em' }, [
+				E('summary', _('System log (until the log buffer wraps or the device reboots)')),
+				E('pre', { 'style': 'white-space:pre-wrap;max-height:20em;overflow:auto' },
+					(st.log ?? []).length ? st.log.join('\n') : _('No log messages'))
+			])
 		]);
 	},
 
@@ -366,7 +390,7 @@ return view.extend({
 			...this.renderPlans(st),
 			...this.renderRadios(st),
 			this.renderHistory(st),
-			this.renderLog(st)
+			this.renderEvals(st)
 		]);
 	},
 
@@ -390,7 +414,7 @@ return view.extend({
 	},
 
 	handleClear(root, ev) {
-		if (!confirm(_('Clear the history? This forgets the channel changes, the channel measurements collected so far and the current plans. The 24 h minimum between two switches of a radio is kept.')))
+		if (!confirm(_('Clear the history? This forgets the channel changes, the evaluations, the channel measurements collected so far and the current plans. The 24 h minimum between two switches of a radio is kept.')))
 			return;
 
 		return callClear().then((r) => {

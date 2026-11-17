@@ -9,7 +9,7 @@ let guard = require('chanmgr.guard');
 let login = require('chanmgr.login');
 
 // kept equal to PKG_VERSION (checked by the tests)
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 function usage() {
 	warn(
