@@ -335,6 +335,14 @@ function sample_into(st, cfg) {
 
 		for (let radio, d in r.data.radios) {
 			let rid = node.name + '/' + radio;
+			let known = st.nodes?.[node.name]?.radios?.[radio];
+
+			// moved since the last discovery (by hand, or by a switch)
+			if (known && d.freq && known.freq != d.freq) {
+				known.freq = d.freq;
+				known.channel = chan.freq2chan(d.freq);
+			}
+
 			let e = filter(d.survey, (x) => x.in_use)[0] ?? filter(d.survey, (x) => x.freq == d.freq)[0];
 
 			if (!e || e.active == null || e.busy == null)
@@ -1222,9 +1230,43 @@ function clear_history() {
 	return { ok: true };
 }
 
+// The radios and plans as last evaluated, but on the channels the nodes
+// report now: a switch, or a change made by hand, shows at once instead of
+// at the next evaluation.
+function follow_nodes(st) {
+	let live = (rid) => {
+		let nr = split(rid, '/');
+
+		return st.nodes[nr[0]]?.radios?.[nr[1]];
+	};
+
+	for (let rid, r in st.radios) {
+		let l = live(rid);
+
+		if (!l?.channel || (l.channel == r.channel && (r.band == '2g' || l.width == r.width)))
+			continue;
+
+		mark_switched(st, rid, { channel: l.channel, width: (r.band == '2g') ? r.width : (l.width ?? r.width) });
+
+		let u = st.util[rid];
+
+		if (u?.value != null && u.freq == l.freq)
+			r.util = u.value;
+	}
+
+	for (let band, p in st.plans)
+		for (let u in p.units ?? []) {
+			let l = live(u.radios[0]);
+
+			if (l?.channel && u.current)
+				u.current = { ...u.current, channel: l.channel, width: (band == '2g') ? u.current.width : (l.width ?? u.current.width) };
+		}
+}
+
 function status() {
 	let st = load_state();
 
+	follow_nodes(st);
 	st.running = running();
 	st.scheduler = scheduler();
 	delete st.util;

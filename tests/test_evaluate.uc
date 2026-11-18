@@ -49,6 +49,15 @@ return function(t) {
 	t.ok(st.plans['2g'].applied > 0, 'apply: time recorded');
 	t.eq([ st.evals[0].trigger, keys(st.evals[0].bands), st.evals[0].bands['2g'].changes[0].to.channel ], [ 'apply', [ '2g' ], 6 ], 'apply: logged with its changes');
 
+	// a radio moved by hand shows on its new channel after the next sample
+	agent.dev.radios.radio1.channel = 44;
+	ctl.sample();
+	st = ctl.status();
+	t.eq(st.radios['local/radio1'].channel, 44, 'status: radio follows the channel the node reports');
+	t.eq(filter(st.plans['5g'].units, (u) => u.radios[0] == 'local/radio1')[0].current.channel, 44, 'status: plan follows too');
+	agent.dev.radios.radio1.channel = 36;
+	ctl.sample();
+
 	// manual apply of the rest
 	r = ctl.apply();
 	t.ok(r.ok, 'apply ok');

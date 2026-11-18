@@ -257,8 +257,9 @@ return view.extend({
 				E('p', [
 					E('strong', ACTIONS[p.action] ?? p.action), ' – ', p.reason, E('br'),
 					(p.action == 'applied')
-						? _('Total capacity: %s before, %s estimated now (gain %s), from the average of the last %d days. Evaluated %s, applied %s.').format(
-							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts), fmtTime(p.applied))
+						? _('Total capacity: %s before, %s estimated now (gain %s), from the average of the last %d days. Evaluated %s.').format(
+							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts))
+							+ (p.applied ? ' ' + _('Applied %s.').format(fmtTime(p.applied)) : '')
 						: _('Total capacity: current %s, best %s (gain %s), from the average of the last %d days. Evaluated %s.').format(
 							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts))
 				]),
