@@ -40,6 +40,15 @@ return function(t) {
 	r = ctl.apply('2g');
 	t.eq([ agent.dev.radios.radio0.channel, agent.dev.radios.radio1.channel ], [ 6, 36 ], 'apply 2g: 5g untouched');
 
+	// the status page follows the switch without a new evaluation
+	st = ctl.status();
+	let r0 = st.radios['local/radio0'];
+	t.eq([ r0.channel, r0.util ], [ 6, null ], 'apply: radio shown on its new channel');
+	t.eq(map(filter(r0.options, (o) => o.current), (o) => o.channel), [ 6 ], 'apply: options mark the new channel');
+	t.eq([ st.plans['2g'].action, st.plans['2g'].reason ], [ 'applied', 'by "Apply plan now", ignoring the decision rules' ], 'apply: plan says how');
+	t.ok(st.plans['2g'].applied > 0, 'apply: time recorded');
+	t.eq([ st.evals[0].trigger, keys(st.evals[0].bands), st.evals[0].bands['2g'].changes[0].to.channel ], [ 'apply', [ '2g' ], 6 ], 'apply: logged with its changes');
+
 	// manual apply of the rest
 	r = ctl.apply();
 	t.ok(r.ok, 'apply ok');

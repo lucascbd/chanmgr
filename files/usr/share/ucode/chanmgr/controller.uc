@@ -201,6 +201,13 @@ function plan_changes(p) {
 		(u) => ({ unit: u.id, from: u.current, to: u.best }));
 }
 
+function push_eval(st, entry) {
+	unshift(st.evals, entry);
+
+	if (length(st.evals) > EVALS_MAX)
+		st.evals = slice(st.evals, 0, EVALS_MAX);
+}
+
 // One line of the evaluation log: when, why, and per band the decision.
 //   changes: { band: plan_changes() } of this run
 function add_eval(st, opts, now, errors, changes) {
@@ -217,13 +224,26 @@ function add_eval(st, opts, now, errors, changes) {
 		};
 	}
 
-	unshift(st.evals, {
+	push_eval(st, {
 		ts: now, trigger: opts?.trigger ?? 'manual', slot: opts?.slot,
 		dry_run: opts?.apply === false, bands, errors
 	});
+}
 
-	if (length(st.evals) > EVALS_MAX)
-		st.evals = slice(st.evals, 0, EVALS_MAX);
+// A radio moved: the status page shows it on its new channel until the next
+// evaluation measures it there.
+function mark_switched(st, rid, to) {
+	let r = st.radios?.[rid];
+
+	if (!r)
+		return;
+
+	r.channel = to.channel;
+	r.width = to.width;
+	r.util = null;
+
+	for (let o in r.options ?? [])
+		o.current = (o.channel == to.channel && o.width == to.width);
 }
 
 function add_history(st, entry) {
@@ -921,7 +941,8 @@ function switch_group(cfg, st, handles, u) {
 }
 
 // Apply the stored plan of a band, one unit at a time. Stops on first failure.
-function apply_band(cfg, st, band) {
+//   manual: "Apply plan now", the plan is applied whatever its decision said
+function apply_band(cfg, st, band, manual) {
 	let p = st.plans[band];
 	let handles = {};
 	let changed = 0;
@@ -950,6 +971,7 @@ function apply_band(cfg, st, band) {
 		for (let rid in u.radios) {
 			st.last_switch[rid] = time();
 			delete st.util[rid];
+			mark_switched(st, rid, u.best);
 			log('notice', '%s: switched channel %d -> %d (%d MHz)', rid, u.current?.channel, u.best.channel, u.best.width);
 		}
 
@@ -957,8 +979,12 @@ function apply_band(cfg, st, band) {
 	}
 
 	p.action = 'applied';
+	p.applied = time();
 	p.key = '';
 	p.streak = 0;
+
+	if (manual)
+		p.reason = 'by "Apply plan now", ignoring the decision rules';
 
 	return true;
 }
@@ -1074,11 +1100,20 @@ function apply(only_band) {
 	if (!lock('apply'))
 		return { error: 'another operation is running' };
 
-	let cfg = config(), st = load_state(), ok = true;
+	let cfg = config(), st = load_state(), ok = true, bands = {}, now = time();
 
-	for (let band, p in st.plans)
-		if ((!only_band || band == only_band) && p.key != '' && p.action != 'applied')
-			ok = apply_band(cfg, st, band) && ok;
+	for (let band, p in st.plans) {
+		if ((only_band && band != only_band) || p.key == '' || p.action == 'applied')
+			continue;
+
+		let changes = plan_changes(p);
+
+		ok = apply_band(cfg, st, band, true) && ok;
+		bands[band] = { action: p.action, reason: p.reason, changes };
+	}
+
+	if (length(bands))
+		push_eval(st, { ts: now, trigger: 'apply', bands, errors: [] });
 
 	discover(cfg, st);
 	save_state(st, true);

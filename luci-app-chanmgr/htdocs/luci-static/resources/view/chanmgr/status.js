@@ -256,8 +256,11 @@ return view.extend({
 				E('h3', _('Plan for %s').format(BANDS[band] ?? band)),
 				E('p', [
 					E('strong', ACTIONS[p.action] ?? p.action), ' – ', p.reason, E('br'),
-					_('Total capacity: current %s, best %s (gain %s), from the average of the last %d days. Evaluated %s.').format(
-						fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts))
+					(p.action == 'applied')
+						? _('Total capacity: %s before, %s estimated now (gain %s), from the average of the last %d days. Evaluated %s, applied %s.').format(
+							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts), fmtTime(p.applied))
+						: _('Total capacity: current %s, best %s (gain %s), from the average of the last %d days. Evaluated %s.').format(
+							fmtCap(p.current_value), fmtCap(p.best_value), fmtGain(p.rel), p.history_days ?? 3, fmtTime(p.ts))
 				]),
 				table([ _('Radios'), _('Current channel'), _('Planned channel'), _('Locked') ], rows, _('No radios')),
 				E('p', { 'style': 'font-size:90%' }, _('Capacity: how much the devices could transmit, where 1.00 is a completely free 20 MHz channel and a free 80 MHz channel is 4.00. It comes from the busy time measured on each channel over the last days; while there are few measurements, the neighbors heard on the channel stand in for them.')),
@@ -291,7 +294,7 @@ return view.extend({
 			out.push(E('div', { 'class': 'cbi-section' }, [
 				E('h3', '%s – %s, %s%s, %s'.format(rid, BANDS[r.band] ?? r.band, fmtChan(r),
 					(r.band == '5g' && r.max_width) ? ' ' + _('(up to %d MHz)').format(r.max_width) : '',
-					_('utilization %s').format(fmtPct(r.util)))),
+					(r.util != null) ? _('utilization %s').format(fmtPct(r.util)) : _('not measured on this channel yet'))),
 				E('h4', { 'style': 'margin:1em 0 .6em 0' }, _('Best channels')),
 				table([ _('Channel'), _('Width'), _('Capacity'), _('Busy'), _('Data') ],
 					(r.options ?? []).map((o) => [
@@ -332,12 +335,14 @@ return view.extend({
 
 			return E([], [
 				E('strong', ACTIONS[b.action] ?? b.action), ' – ', b.reason ?? '',
-				...(b.changes ?? []).map((c) => E([], [ E('br'), '%s: %s → %s'.format(c.unit, fmtChan(c.from), fmtChan(c.to)) ]))
+				// a plan that is kept changes nothing: its best option is not news
+				...((b.action == 'keep') ? [] : (b.changes ?? [])).map((c) => E([], [ E('br'), '%s: %s → %s'.format(c.unit, fmtChan(c.from), fmtChan(c.to)) ]))
 			]);
 		};
 		const rows = (st.evals ?? []).map((e) => [
 			fmtTime(e.ts),
-			((e.trigger == 'scheduled') ? _('scheduled (%s)').format(e.slot ?? '-') : _('manual'))
+			((e.trigger == 'scheduled') ? _('scheduled (%s)').format(e.slot ?? '-')
+				: (e.trigger == 'apply') ? _('Apply plan now') : _('manual'))
 				+ (e.dry_run ? ' · ' + _('no apply') : ''),
 			band(e.bands?.['2g']),
 			band(e.bands?.['5g']),
