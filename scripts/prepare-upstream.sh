@@ -4,10 +4,11 @@
 #
 #   scripts/prepare-upstream.sh <version> <packages-clone> <luci-clone>
 #
-# Needs: the tag v<version> pushed to GitHub, git user.name (your full name)
-# and user.email set, curl or wget, sha256sum, and gettext (msguniq) for
-# LuCI's translation template. Commits are signed off (-s) by you; nothing
-# is pushed.
+# The package carries all its files (net/chanmgr/files/, a copy of files/
+# here): nothing is downloaded, no release tag is needed.
+# Needs: git user.name (your full name) and user.email set, and gettext
+# (msguniq) for LuCI's translation template. Commits are signed off (-s) by
+# you; nothing is pushed.
 set -e
 
 die() { echo "error: $*" >&2; exit 1; }
@@ -18,7 +19,6 @@ version=$1
 pkgs=$(cd "$2" && pwd) || die "no such directory: $2"
 luci=$(cd "$3" && pwd) || die "no such directory: $3"
 repo=$(cd "$(dirname "$0")/.." && pwd)
-url=${CHANMGR_TARBALL_URL:-https://codeload.github.com/lucascbd/chanmgr/tar.gz/v$version}
 
 [ -f "$pkgs/net/Makefile" ] || [ -d "$pkgs/net" ] || die "$pkgs does not look like openwrt/packages"
 [ -x "$luci/build/i18n-sync.sh" ] || die "$luci does not look like openwrt/luci"
@@ -29,23 +29,9 @@ case "$name" in *" "*) ;; *) die "git user.name must be your full name (Signed-o
 case "$email" in *noreply*) die "use a real e-mail address, OpenWrt does not accept noreply addresses" ;; esac
 
 grep -q "^PKG_VERSION:=$version\$" "$repo/chanmgr/Makefile" ||
-	die "chanmgr/Makefile is not at version $version: set it, commit, tag v$version and push"
+	die "chanmgr/Makefile is not at version $version"
 
 command -v msguniq >/dev/null || die "msguniq missing (install gettext)"
-
-# --- source tarball and its hash ---------------------------------------------
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-
-echo "Downloading $url"
-if command -v curl >/dev/null; then
-	curl -fsSL -o "$tmp/src.tar.gz" "$url"
-else
-	wget -q -O "$tmp/src.tar.gz" "$url"
-fi || die "download failed: is the tag v$version pushed?"
-
-hash=$(sha256sum "$tmp/src.tar.gz" | cut -d' ' -f1)
-echo "PKG_HASH: $hash"
 
 # A new branch from the default branch, or, when the branch exists (pull
 # request already open), the same branch rebuilt from its base: one commit,
@@ -64,18 +50,15 @@ branch() {
 # --- openwrt/packages: net/chanmgr ------------------------------------------
 branch "$pkgs" chanmgr
 rm -rf "$pkgs/net/chanmgr"
-mkdir -p "$pkgs/net/chanmgr/files"
+mkdir -p "$pkgs/net/chanmgr"
 
 # drop the header comment meant for this repository
 sed -e '/^# Copy of chanmgr\/Makefile/,/^# (Named Makefile.upstream/d' \
 	-e "s|^PKG_VERSION:=.*|PKG_VERSION:=$version|" \
-	-e "s|^PKG_HASH:=.*|PKG_HASH:=$hash|" \
 	-e "s|^PKG_MAINTAINER:=.*|PKG_MAINTAINER:=$name <$email>|" \
 	"$repo/openwrt/net/chanmgr/Makefile.upstream" > "$pkgs/net/chanmgr/Makefile"
 cp "$repo/openwrt/net/chanmgr/test.sh" "$pkgs/net/chanmgr/test.sh"
-cp "$repo/files/etc/config/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.config"
-cp "$repo/files/etc/init.d/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.init"
-cp "$repo/files/lib/upgrade/keep.d/chanmgr" "$pkgs/net/chanmgr/files/chanmgr.keep"
+cp -R "$repo/files" "$pkgs/net/chanmgr/files"
 
 git -C "$pkgs" add net/chanmgr
 git -C "$pkgs" commit -q -s -F - <<EOF

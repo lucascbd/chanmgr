@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=chanmgr
-PKG_VERSION:=1.3.0
+PKG_VERSION:=1.4.0
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=Lucas <lucascbdias@gmail.com>
@@ -30,7 +30,7 @@ define Package/chanmgr
   TITLE:=Periodic Wi-Fi channel optimizer
   URL:=https://github.com/lucascbd/chanmgr
   DEPENDS:=+ucode +ucode-mod-fs +ucode-mod-ubus +ucode-mod-uci \
-	+rpcd +rpcd-mod-ucode +iw +uclient-fetch
+	+ucode-mod-nl80211 +rpcd +rpcd-mod-ucode +iw +uclient-fetch
   PKGARCH:=all
 endef
 

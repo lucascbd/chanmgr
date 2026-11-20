@@ -98,7 +98,7 @@ return function(t) {
 	t.eq(map(r5[0][0].candidates, (s) => s.width), [ 80, 80 ], '5g: current width only while width analysis is off');
 
 	// width analysis: a group only gets the widths every member's hardware supports
-	let cfgw = { ...cfg, width_analysis: true, widths_5g: [ 40, 80, 160 ], allow_dfs: true };
+	let cfgw = { ...cfg, width_analysis: true, widths_5g: [ 40, 80, 160 ], dfs: 'all' };
 	let widths = () => uniq(sort(map(ctl.capacity_model(cfgw, st, ctl.build_model(cfgw, st, scans), '5g', time()).units[0].candidates, (s) => s.width)));
 
 	t.eq(widths(), [ 40, 80, 160 ], '5g widths: no hardware limit reported');
@@ -107,6 +107,20 @@ return function(t) {
 	t.eq(widths(), [ 40, 80 ], '5g widths: group limited by its narrowest radio');
 	delete st.nodes.ap1.radios.radio1.max_width;
 	delete st.nodes.ap2.radios.radio1.max_width;
+
+	// DFS only outside mesh groups: the group gets no 160 MHz block (all include DFS)
+	cfgw.dfs = 'nomesh';
+	t.eq(widths(), [ 40, 80 ], 'dfs nomesh: none for a mesh group');
+	t.eq([ ctl.dfs_ok(cfgw, 'ap1/radio1', { has_mesh: false }), ctl.dfs_ok(cfgw, 'ap9/radio1', { has_mesh: false }),
+		ctl.dfs_ok(cfgw, 'ap9/radio1', { has_mesh: true }), ctl.dfs_ok({ ...cfgw, dfs: 'off' }, 'ap9/radio1', {}) ],
+		[ false, true, false, false ], 'dfs nomesh: group member, lone radio, lone mesh radio, off');
+
+	uci.data.chanmgr.main.allow_dfs = 'nomesh';
+	t.eq(ctl.config().dfs, 'nomesh', 'config: allow_dfs nomesh');
+	uci.data.chanmgr.main.allow_dfs = '1';
+	t.eq(ctl.config().dfs, 'all', 'config: allow_dfs 1');
+	delete uci.data.chanmgr.main.allow_dfs;
+	t.eq(ctl.config().dfs, 'off', 'config: allow_dfs default off');
 
 	let r2 = plan_band('2g');
 	p = r2[1];

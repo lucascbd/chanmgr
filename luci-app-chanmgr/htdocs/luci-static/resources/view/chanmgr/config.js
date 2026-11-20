@@ -168,8 +168,12 @@ return view.extend({
 		o.datatype = 'uinteger';
 		o.placeholder = '86400';
 
-		o = s.taboption('decision', form.Flag, 'allow_dfs', _('Allow DFS channels'),
-			_('Channels 52–144 are shared with radar. A radio must stay silent for 1 to 10 minutes before using one, and must leave it at once when radar is detected. Not recommended for radios carrying a mesh link: a radar hit moves only the node that detected it and splits the mesh.'));
+		o = s.taboption('decision', form.ListValue, 'allow_dfs', _('DFS channels'),
+			_('Channels 52–144 are shared with radar. A radio must stay silent for 1 to 10 minutes before using one, and must leave it at once when radar is detected. On radios carrying a mesh link a radar hit moves only the node that detected it and splits the mesh. Clients also cannot probe DFS channels actively, which slows down roaming between access points (802.11k/v, usteer, DAWN). Every 160 MHz channel includes DFS channels.'));
+		o.value('0', _('Off'));
+		o.value('nomesh', _('Only radios outside groups and without mesh'));
+		o.value('1', _('All radios'));
+		o.default = '0';
 
 		o = s.taboption('decision', form.DynamicList, 'channels_2g', _('2.4 GHz channels'),
 			_('Candidate channels in the 2.4 GHz band. Only non-overlapping channels are recommended.'));
@@ -181,7 +185,7 @@ return view.extend({
 		o.default = o.disabled;
 
 		o = s.taboption('width', form.MultiValue, 'widths_5g', _('5 GHz widths to compare'),
-			_('Widths you allow. Each radio only uses the ones its hardware supports (shown on the status page), and radios in a group only the ones all of them support. The width configured on the radio is always included.'));
+			_('Widths you allow. Each radio only uses the ones its hardware supports (shown on the status page), and radios in a group only the ones all of them support. The width configured on the radio is always included. 160 MHz needs DFS channels (Decision tab).'));
 		o.value('20', '20 MHz');
 		o.value('40', '40 MHz');
 		o.value('80', '80 MHz');

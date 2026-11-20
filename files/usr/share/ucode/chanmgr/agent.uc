@@ -13,6 +13,7 @@ let ubus = require('ubus');
 let uci = require('uci');
 let chan = require('chanmgr.chan');
 let parse = require('chanmgr.parse');
+let nl = require('chanmgr.nl');
 
 // the list of changes made here survives reboots (a write per change)
 const PERSIST_DIR = getenv('CHANMGR_PERSIST_DIR') ?? '/etc/chanmgr';
@@ -48,6 +49,26 @@ function iw(args) {
 	return run('iw ' + args);
 }
 
+// Radio state from nl80211 when available, else from the text of iw.
+function dev_info(ifname) {
+	return nl.dev_info(ifname) ?? parse.dev_info(iw('dev ' + shq(ifname) + ' info'));
+}
+
+// A radio entering a DFS channel listens for radar (channel availability
+// check, 1 to 10 min) before it may transmit: nothing to measure or switch
+// meanwhile. hostapd reports it (not an rpcd object: no deadlock).
+function cac_active(ifname) {
+	return !!bus().call('hostapd.' + ifname, 'get_status', {})?.dfs?.cac_active;
+}
+
+function survey_dump(ifname) {
+	return nl.survey(ifname) ?? parse.survey(iw('dev ' + shq(ifname) + ' survey dump'));
+}
+
+function station_rx(ifname) {
+	return nl.station_rx(ifname) ?? parse.station_rx(iw('dev ' + shq(ifname) + ' station dump'));
+}
+
 // Radios of this device with their interfaces, current channel and the
 // channels the regulatory domain allows.
 function info() {
@@ -70,7 +91,7 @@ function info() {
 			if (!i.ifname)
 				continue;
 
-			let d = parse.dev_info(iw('dev ' + shq(i.ifname) + ' info'));
+			let d = dev_info(i.ifname);
 
 			push(ifaces, { ifname: i.ifname, mode: i.config?.mode ?? d.type, addr: d.addr, info: d });
 		}
@@ -79,6 +100,11 @@ function info() {
 
 		if (!main || main.info.freq == null) {
 			down[name] = main ? main.ifname + ' has no channel (not started, or waiting for DFS)' : 'no AP or mesh interface';
+			continue;
+		}
+
+		if (main.mode == 'ap' && cac_active(main.ifname)) {
+			down[name] = 'checking the DFS channel for radar before using it';
 			continue;
 		}
 
@@ -120,9 +146,9 @@ function survey() {
 		let stations = {};
 
 		for (let i in filter(r.ifaces, (i) => i.mode == 'ap'))
-			stations = { ...stations, ...parse.station_rx(iw('dev ' + shq(i.ifname) + ' station dump')) };
+			stations = { ...stations, ...station_rx(i.ifname) };
 
-		res[name] = { freq: r.freq, survey: parse.survey(iw('dev ' + shq(r.ifname) + ' survey dump')), stations };
+		res[name] = { freq: r.freq, survey: survey_dump(r.ifname), stations };
 	}
 
 	return { radios: res };
@@ -150,7 +176,7 @@ function scan(radio) {
 	return {
 		radio, freq: r.freq,
 		neighbors: bss,
-		survey: parse.survey(iw('dev ' + shq(r.ifname) + ' survey dump'))
+		survey: survey_dump(r.ifname)
 	};
 }
 
@@ -159,19 +185,19 @@ function mesh_peers(ifnames) {
 	let n = 0;
 
 	for (let ifname in ifnames)
-		n += length(filter(split(iw('dev ' + shq(ifname) + ' station dump') ?? '', '\n'),
+		n += nl.mesh_peers(ifname) ?? length(filter(split(iw('dev ' + shq(ifname) + ' station dump') ?? '', '\n'),
 			(l) => match(l, /mesh plink:\s+ESTAB/)));
 
 	return n;
 }
 
 function current_freq(ifname) {
-	return parse.dev_info(iw('dev ' + shq(ifname) + ' info')).freq;
+	return dev_info(ifname).freq;
 }
 
 // Does the interface run on freq (and width, when given)?
 function running_on(ifname, freq, width) {
-	let d = parse.dev_info(iw('dev ' + shq(ifname) + ' info'));
+	let d = dev_info(ifname);
 
 	return d.freq == freq && (!width || d.width == width);
 }

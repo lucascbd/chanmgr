@@ -5,7 +5,8 @@ up. It never re-evaluates, and it does not know about your other access points.
 chanmgr fills that gap:
 
 * **Measures** the utilization of the current channel all day with passive survey
-  samples (`iw survey dump`), excluding the radio's own transmit time.
+  samples (nl80211, or `iw survey dump` without `ucode-mod-nl80211`), excluding
+  the radio's own transmit time.
 * **Scans** neighbors at scheduled quiet hours (default 02:30 and 04:30), one
   node at a time, so the clients always have an access point that stays on channel.
 * **Plans jointly**: it rates every channel by the capacity it would give, from the
@@ -100,8 +101,11 @@ On every device (controller and access points):
 scripts/deploy.sh root@192.168.1.1 --luci   # --luci only where you want the UI
 ```
 
-The device needs `ucode ucode-mod-fs ucode-mod-ubus ucode-mod-uci rpcd-mod-ucode
-iw uclient-fetch`. The script warns about missing ones.
+The device needs `ucode ucode-mod-fs ucode-mod-ubus ucode-mod-uci
+ucode-mod-nl80211 rpcd-mod-ucode iw uclient-fetch`. The script warns about
+missing ones. Without `ucode-mod-nl80211` the radio state is read from the
+output of `iw` instead. A radio checking a DFS channel for radar (CAC) is left
+alone until it is done.
 
 ### Remote access points
 
@@ -199,7 +203,7 @@ chanmgr agent info | survey | scan <radio>
 | `min_gain_abs` | `0.2` | minimum capacity gain, in free 20 MHz channels |
 | `confirm` | `2` | consecutive evaluations proposing the same plan |
 | `min_switch_interval` | `86400` | seconds before a radio may move again |
-| `allow_dfs` | `0` | consider channels 52–144 |
+| `allow_dfs` | `0` | DFS channels 52–144: `0` off, `nomesh` only radios outside groups and without mesh, `1` all radios (every 160 MHz block needs them) |
 | `channels_2g` | `1 6 11` | 2.4 GHz candidates |
 | `width_analysis` | `0` | 5 GHz: also choose the channel width |
 | `widths_5g` | `40 80` | 5 GHz widths the plan may use |
@@ -275,10 +279,10 @@ files to a running device.
 `luci-app-chanmgr` to [openwrt/luci](https://github.com/openwrt/luci) once the
 first one is merged.
 
-1. Merge into `main`, set the version in `chanmgr/Makefile`,
+1. Merge into `main` and set the version in `chanmgr/Makefile`,
    `openwrt/net/chanmgr/Makefile.upstream` and `VERSION` in
-   `files/usr/sbin/chanmgr` (the tests check they match), commit, tag
-   `v<version>` and push the tag.
+   `files/usr/sbin/chanmgr` (the tests check they match). Tagging the release
+   is good practice, but the package does not download it.
 2. Fork both repositories on GitHub and clone the forks.
 3. With your full name and e-mail in `git config user.name` / `user.email`:
 
@@ -286,9 +290,9 @@ first one is merged.
    scripts/prepare-upstream.sh <version> ../packages ../luci
    ```
 
-   It downloads the release tarball, fills in `PKG_HASH` and `PKG_MAINTAINER`,
-   copies the configuration, init script and keep.d list to `net/chanmgr/files/`
-   (reviewers want them in the feed), regenerates the LuCI translation template
+   It copies every file of the package to `net/chanmgr/files/` (reviewers want
+   them in the feed, nothing is downloaded), fills in `PKG_MAINTAINER`,
+   regenerates the LuCI translation template
    and creates one signed-off commit in each clone (`chanmgr: add new package`,
    `luci-app-chanmgr: add new application`). Nothing is pushed. Run again for
    a new version while the pull request is open: the branch is rebuilt as one

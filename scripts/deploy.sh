@@ -20,7 +20,7 @@ fi
 
 ssh "$host" '
 	chmod 755 /usr/sbin/chanmgr /etc/init.d/chanmgr
-	for m in fs ubus uci; do
+	for m in fs ubus uci nl80211; do
 		[ -e /usr/lib/ucode/$m.so ] || echo "missing ucode-mod-$m" >&2
 	done
 	[ -e /usr/lib/rpcd/ucode.so ] || echo "missing rpcd-mod-ucode" >&2

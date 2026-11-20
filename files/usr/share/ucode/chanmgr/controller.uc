@@ -57,6 +57,9 @@ function config() {
 		min_capacity_gain: n(m.min_gain_abs, 0.2),
 		confirm: n(m.confirm, 2),
 		min_switch_interval: n(m.min_switch_interval, 86400),
+		// DFS channels: off, all radios, or only radios outside mesh groups
+		// ("nomesh": a radar hit moves one node only and splits the mesh)
+		dfs: (m.allow_dfs == '1') ? 'all' : (m.allow_dfs == 'nomesh') ? 'nomesh' : 'off',
 		allow_dfs: m.allow_dfs == '1',
 		ref_rssi: n(m.ref_rssi, -70),
 		bcn_count: n(m.bcn_count, 10),
@@ -322,6 +325,14 @@ function discover(cfg, st) {
 	return res;
 }
 
+// May this radio use DFS channels? r: { has_mesh }
+function dfs_ok(cfg, rid, r) {
+	if (cfg.dfs == 'all')
+		return true;
+
+	return cfg.dfs == 'nomesh' && !r?.has_mesh && !length(filter(cfg.groups, (g) => index(g.members, rid) >= 0));
+}
+
 /* --- sampling ----------------------------------------------------------- */
 
 function hour_start(ts) {
@@ -480,7 +491,7 @@ function build_model(cfg, st, scans) {
 			radios[rid] = {
 				rid, node: node.name, radio, band: r.band, htmode: r.htmode, max_width: r.max_width,
 				current: chan.spec(r.band, r.channel, (r.band == '2g') ? 20 : r.width, (r.band == '2g') ? null : r.center),
-				candidates: chan.candidates(r.band, width, chan.allowed_map(r.channels, r.band), cfg, r.channel),
+				candidates: chan.candidates(r.band, width, chan.allowed_map(r.channels, r.band), { ...cfg, allow_dfs: dfs_ok(cfg, rid, r) }, r.channel),
 				has_mesh: r.has_mesh,
 				locked: (index(node.lock, radio) >= 0) ? 'locked in configuration' : null,
 				neighbors: [],
@@ -700,7 +711,7 @@ function capacity_model(cfg, st, model, band, now) {
 		let opts = [];
 
 		for (let w in widths)
-			push(opts, ...chan.candidates(band, w, allowed, cfg, r.current.channel));
+			push(opts, ...chan.candidates(band, w, allowed, { ...cfg, allow_dfs: dfs_ok(cfg, rid, r) }, r.current.channel));
 
 		radios[rid] = { busy: score.busy_estimate(band, channels, r.neighbors, measured, cfg) };
 		sums[rid] = sum;
@@ -1382,4 +1393,4 @@ function daemon() {
 	}
 }
 
-return { config, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into, clear_history, capacity_model };
+return { config, dfs_ok, evaluate, apply, sample, discover: do_discover, status, daemon, build_model, switch_group, switch_guarded, due_slot, next_slot, scheduler, daemon_tick, record_chanstats, chanstats_summary, sample_into, clear_history, capacity_model };

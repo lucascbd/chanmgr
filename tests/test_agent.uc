@@ -42,6 +42,13 @@ return function(t) {
 	let i = agent.info().radios.radio1;
 	t.eq([ i.channel, i.has_mesh, i.ifname, length(i.channels), i.max_width ], [ 36, true, 'phy1-ap0', 2, 160 ], 'agent: info');
 
+	// a radio checking a DFS channel for radar is left alone
+	ubus.objects['hostapd.phy1-ap0'].get_status = () => ({ dfs: { cac_active: true } });
+	let inf0 = agent.info();
+	t.eq([ inf0.radios.radio1, inf0.down.radio1 ], [ null, 'checking the DFS channel for radar before using it' ], 'agent: radio in CAC reported down');
+	t.eq(agent.survey().radios, {}, 'agent: radio in CAC not sampled');
+	delete ubus.objects['hostapd.phy1-ap0'].get_status;
+
 	// CSA works: switched and persisted
 	reset(5180);
 	let r = agent.switch_channel({ radio: 'radio1', channel: 149, width: 20, bcn_count: 1 });

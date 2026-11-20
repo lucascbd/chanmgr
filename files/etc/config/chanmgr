@@ -19,6 +19,7 @@ config chanmgr 'main'
 	# same plan in N consecutive evaluations
 	option confirm '2'
 	option min_switch_interval '86400'
+	# DFS channels: 0 off, nomesh (radios outside groups and without mesh), 1 all
 	option allow_dfs '0'
 	option ref_rssi '-70'
 	option bcn_count '10'
