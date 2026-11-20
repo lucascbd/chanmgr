@@ -159,4 +159,33 @@ return function(t) {
 	let sm = ctl.chanstats_summary(hs.chanstats.x, 3, t0 + 3 * 86400 - 1800);
 	t.eq(sm.count['5745'], 4, 'grace: sample from 3 days ago kept');
 	t.ok((t0 + 3 * 86400 - 1800 - sm.first['5745']) / 86400.0 >= 3 - 0.25, 'grace: window counts as 3 days');
+
+	// the channel in use counts only at the hours the other channels were scanned
+	let lt0 = localtime(t0), day0 = t0 - lt0.hour * 3600 - lt0.min * 60 - lt0.sec + 86400;
+	let at = (d, hour) => day0 + d * 86400 + hour * 3600;
+	let hm = { '5745': { samples: [] }, '5180': { samples: [] } };
+
+	for (let d = 0; d < 2; d++) {
+		push(hm['5745'].samples, [ at(d, 3), 0.1, 1 ], [ at(d, 20), 0.9, 1 ]);   // in use: quiet at night, busy at 8 pm
+		push(hm['5180'].samples, [ at(d, 3) + 1800, 0.2 ]);                       // scanned at 3:30
+	}
+
+	let mt = ctl.chanstats_summary(hm, 3, at(2, 4));
+	t.near(mt.util['5745'], 0.1, 'hours: in-use channel compared at the scan hours only');
+	t.eq([ mt.count['5745'], mt.count['5180'] ], [ 2, 2 ], 'hours: counts');
+	t.near(mt.util['5180'], 0.2, 'hours: scanned channel as measured');
+
+	hm['5180'].samples = [];
+	t.near(ctl.chanstats_summary(hm, 3, at(2, 4)).util['5745'], 0.5, 'hours: no scans, all-day mean');
+
+	hm['5180'].samples = [ [ at(1, 12), 0.3 ] ];
+	t.near(ctl.chanstats_summary(hm, 3, at(2, 4)).util['5745'], 0.5, 'hours: no in-use sample at the scan hours, all of them');
+
+	// the long-term value only stands in while no hourly sample exists
+	let hv = { chanstats: {} };
+	ctl.record_chanstats(hv, 'x', [], 3, at(0, 3), { freq: 5745, value: 0.4 });
+	t.eq(hv.chanstats.x['5745'].samples, [ [ at(0, 3), 0.4, 1 ] ], 'record: long-term value without hourly samples');
+	push(hv.chanstats.x['5745'].samples, [ at(0, 4), 0.2, 1 ]);
+	ctl.record_chanstats(hv, 'x', [], 3, at(1, 3), { freq: 5745, value: 0.4 });
+	t.eq(length(hv.chanstats.x['5745'].samples), 2, 'record: not once hourly samples exist');
 };

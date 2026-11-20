@@ -59,9 +59,11 @@ capacity = P(20 free) + P(40 free) + 2 * P(80 free) + 4 * P(160 free)
 where P(40 free) is the product of the free airtime of the primary and its
 secondary 20 MHz channel, and so on. The busy fraction of each 20 MHz channel
 is the mean of the survey samples of the last `history_days` (3): one per
-channel and evaluation from the scans, and all-day samples for the channel in
-use (without the receive airtime of the AP's own clients, per-station `rx
-duration`). While a channel has few samples, a prior from the neighbors heard
+channel and evaluation from the scans, and hourly samples for the channel in
+use (from the 5 min sampling, without the receive airtime of the AP's own
+clients, per-station `rx duration`). The channel in use counts only at the
+hours of the day in which the others were scanned, so a channel that is busy
+in the evening is not compared against night-time scans of the others. While a channel has few samples, a prior from the neighbors heard
 on it (signal weighted: 1 at `ref_rssi`, x10 per +10 dB, partial overlap in
 2.4 GHz counted) stands in, worth two samples. Own access points that hear
 each other share airtime where their channels overlap. The plan maximizes the

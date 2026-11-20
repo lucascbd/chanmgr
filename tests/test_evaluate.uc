@@ -122,6 +122,7 @@ return function(t) {
 		ctl.sample_into(st2, { nodes: [ { name: 'x', h: { call: () => replies[i] } } ] });
 
 	t.near(st2.util['x/radio1'].value, (500 - 300) / 1000.0, 'sampling: own clients rx excluded');
+	t.near(st2.util['x/radio1'].hour.busy / st2.util['x/radio1'].hour.active, 0.2, 'sampling: hour of the channel in use accumulated');
 
 	// history survives a reboot: /tmp is empty, the copy in /etc is used
 	let fs = require('fs'), run = getenv('CHANMGR_RUN_DIR'), keep = getenv('CHANMGR_PERSIST_DIR');
@@ -132,6 +133,13 @@ return function(t) {
 	let before = ctl.status();
 	t.ok(fs.stat(keep + '/state.json'), 'persist: copy written after an evaluation');
 	t.eq(json(fs.readfile(keep + '/state.json')).util, null, 'persist: utilization counters not kept');
+	let cs = json(fs.readfile(keep + '/state.json')).chanstats['local/radio1'];
+	let in_use = [];
+	for (let f, c in cs)
+		for (let x in c.samples)
+			if (x[2] == 1)
+				push(in_use, +f);
+	t.ok(length(in_use) > 0 && index(in_use, 5180) >= 0, 'evaluate: hour in use recorded for the current channel');
 
 	fs.unlink(run + '/state.json');   // reboot
 	let after = ctl.status();

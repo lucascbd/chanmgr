@@ -324,6 +324,35 @@ function discover(cfg, st) {
 
 /* --- sampling ----------------------------------------------------------- */
 
+function hour_start(ts) {
+	let lt = localtime(ts);
+
+	return ts - lt.min * 60 - lt.sec;
+}
+
+// The channel in use is measured all day, the others only while the radio
+// scans (at the evaluation times). To compare them at the same hours, its
+// 5 min samples are also kept per hour, as samples marked "in use" (third
+// element 1) in the channel history; chanstats_summary matches them to the
+// hours of the scans.
+function flush_hour(st, rid, u) {
+	let b = u?.hour;
+
+	if (!b)
+		return false;
+
+	delete u.hour;
+
+	if (!(b.active > 0))
+		return false;
+
+	let h = (st.chanstats ??= {})[rid] ??= {};
+
+	push((h['' + u.freq] ??= { samples: [] }).samples, [ b.start, min(1, 1.0 * b.busy / b.active), 1 ]);
+
+	return true;
+}
+
 function sample_into(st, cfg) {
 	for (let node in cfg.nodes) {
 		node.h ??= handle(node);
@@ -350,8 +379,10 @@ function sample_into(st, cfg) {
 
 			let u = st.util[rid];
 
-			if (!u || u.freq != e.freq)
+			if (!u || u.freq != e.freq) {
+				flush_hour(st, rid, u);
 				u = st.util[rid] = { freq: e.freq, acc_active: 0, acc_busy: 0, last: null, since: time() };
+			}
 
 			let busy = e.busy - (e.tx ?? 0);
 
@@ -371,8 +402,17 @@ function sample_into(st, cfg) {
 
 				// counters reset (interface restart) produce negative deltas
 				if (da > 0 && db >= 0 && db <= da) {
+					let hs = hour_start(time());
+
 					u.acc_active += da;
 					u.acc_busy += max(0, db - own);
+
+					if (u.hour && u.hour.start != hs)
+						flush_hour(st, rid, u);
+
+					u.hour ??= { start: hs, active: 0, busy: 0 };
+					u.hour.active += da;
+					u.hour.busy += max(0, db - own);
 				}
 			}
 
@@ -546,14 +586,15 @@ function build_model(cfg, st, scans) {
 // Keep one busy-fraction sample per 20 MHz channel and evaluation, from the
 // survey counters reported after a scan. Counters may be cumulative (then
 // the difference to the previous evaluation is used) or reset per scan.
-// The channel in use is recorded from the long-term samples (current: { freq,
-// value }), which exclude our own clients' traffic; its survey entry from
-// the scan would count that traffic as congestion.
+// The channel in use (current: { freq, value }) is recorded from its hourly
+// in-use samples, which exclude our own clients' traffic (its survey entry
+// from the scan would count that traffic as congestion); without any yet,
+// from the long-term value.
 function record_chanstats(st, rid, survey, days, now, current) {
 	let h = st.chanstats[rid] ??= {};
 
-	if (current?.value != null)
-		push((h['' + current.freq] ??= { samples: [] }).samples, [ now, current.value ]);
+	if (current?.value != null && !length(filter(h['' + current.freq]?.samples ?? [], (x) => x[2])))
+		push((h['' + current.freq] ??= { samples: [] }).samples, [ now, current.value, 1 ]);
 
 	for (let e in survey ?? []) {
 		if (e.active == null || e.busy == null || e.in_use || e.freq == current?.freq)
@@ -574,12 +615,12 @@ function record_chanstats(st, rid, survey, days, now, current) {
 			push(c.samples, [ now, min(1, 1.0 * db / da) ]);
 	}
 
-	// keep a little more than the analysis window
+	// keep a little more than the analysis window (in use: 24 samples a day)
 	for (let f, c in h) {
 		c.samples = filter(c.samples, (x) => x[0] >= now - (days + 1) * 86400);  // > window + grace
 
-		if (length(c.samples) > 200)
-			c.samples = slice(c.samples, -200);
+		if (length(c.samples) > 24 * (days + 2) + 50)
+			c.samples = slice(c.samples, -(24 * (days + 2) + 50));
 	}
 }
 
@@ -590,23 +631,43 @@ function record_chanstats(st, rid, survey, days, now, current) {
 // and let that window count as complete (see DATA_GRACE).
 const DATA_GRACE = 6 * 3600;
 
+//
+// Samples of the channel in use (marked, one per hour) only count for the
+// hours of the day in which the other channels were scanned: neighbors are
+// busier in the evening than at 3 am, and an all-day mean of the current
+// channel against night-time scans of the others would favor any switch.
+// Without in-use samples at those hours (the first day), all of them count.
 function chanstats_summary(h, days, now) {
-	let util = {}, count = {}, first = {};
+	let util = {}, count = {}, first = {}, hours = {};
+	let since = now - days * 86400 - DATA_GRACE;
+
+	for (let f, c in h ?? {})
+		for (let x in c.samples)
+			if (x[0] >= since && !x[2])
+				hours[localtime(x[0]).hour] = true;
+
+	let matched = length(keys(hours)) > 0;
 
 	for (let f, c in h ?? {}) {
-		let xs = filter(c.samples, (x) => x[0] >= now - days * 86400 - DATA_GRACE);
+		let all = filter(c.samples, (x) => x[0] >= since);
+		let xs = matched ? filter(all, (x) => !x[2] || hours[localtime(x[0]).hour]) : all;
+
+		if (!length(xs))
+			xs = all;
 
 		if (!length(xs))
 			continue;
 
-		let sum = 0;
+		let sum = 0, oldest = xs[0][0];
 
-		for (let x in xs)
+		for (let x in xs) {
 			sum += x[1];
+			oldest = min(oldest, x[0]);
+		}
 
 		util[f] = 1.0 * sum / length(xs);
 		count[f] = length(xs);
-		first[f] = xs[0][0];
+		first[f] = oldest;
 	}
 
 	return { util, count, first };
@@ -1043,6 +1104,10 @@ function evaluate(opts) {
 					scans[node.name + '/' + radio] = res.data;
 
 					let u = st.util[node.name + '/' + radio];
+
+					// the hour of this scan, in use so far
+					if (u?.freq == r.freq)
+						flush_hour(st, node.name + '/' + radio, u);
 
 					record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now,
 						(u?.value != null && u.freq == r.freq) ? { freq: u.freq, value: u.value } : null);
