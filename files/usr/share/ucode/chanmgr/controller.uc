@@ -1121,7 +1121,7 @@ function evaluate(opts) {
 						flush_hour(st, node.name + '/' + radio, u);
 
 					record_chanstats(st, node.name + '/' + radio, res.data.survey, cfg.history_days, now,
-						(u?.value != null && u.freq == r.freq) ? { freq: u.freq, value: u.value } : null);
+						{ freq: r.freq, value: (u?.freq == r.freq) ? u.value : null });
 				}
 			}
 		}

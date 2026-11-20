@@ -188,4 +188,10 @@ return function(t) {
 	push(hv.chanstats.x['5745'].samples, [ at(0, 4), 0.2, 1 ]);
 	ctl.record_chanstats(hv, 'x', [], 3, at(1, 3), { freq: 5745, value: 0.4 });
 	t.eq(length(hv.chanstats.x['5745'].samples), 2, 'record: not once hourly samples exist');
+
+	// the channel in use is never taken from the scan survey (it holds our own
+	// traffic), even when the survey does not mark it (nl80211 on 25.12)
+	let hn = { chanstats: {} };
+	ctl.record_chanstats(hn, 'x', [ { freq: 5745, active: 1000, busy: 900, tx: 0 }, { freq: 5180, active: 100, busy: 10, tx: 0 } ], 3, at(0, 3), { freq: 5745, value: null });
+	t.eq(keys(hn.chanstats.x), [ '5180' ], 'record: unmarked channel in use skipped');
 };
