@@ -60,7 +60,9 @@ function survey(ifname) {
 		});
 	}
 
-	return res;
+	// every radio reports at least the channel in use: nothing usable (an
+	// unexpected reply format) means falling back to iw
+	return length(filter(res, (e) => e.active != null && e.busy != null)) ? res : null;
 }
 
 // Station dump of one interface: [ { mac, rx_duration (us), plink_state } ]

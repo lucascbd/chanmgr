@@ -45,5 +45,8 @@ return function(t) {
 	t.eq(nl.dev_info('phy1-mesh0'), { ifname: 'phy1-mesh0', addr: null, type: 'mesh point', wiphy: 1 }, 'nl: interface without channel');
 	t.eq([ nl.survey('nope'), nl.dev_info('nope') ], [ null, null ], 'nl: failed request -> null (iw fallback)');
 
+	nl.use(fake({ NL80211_CMD_GET_SURVEY: { 'phy1-ap0': [ { other: {} } ], 'phy1-ap1': [] } }));
+	t.eq([ nl.survey('phy1-ap0'), nl.survey('phy1-ap1') ], [ null, null ], 'nl: unknown or empty survey reply -> iw fallback');
+
 	nl.use(null);
 };
